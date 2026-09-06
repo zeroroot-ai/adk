@@ -1,0 +1,25 @@
+apiVersion: plugin.gibson.zeroroot.ai/v1
+kind: Plugin
+metadata:
+  name: byte-identity-secret
+  version: 1.2.3
+  description: "byte-identity-secret plugin"
+  author: ""
+spec:
+  workload_class: plugin
+  runtime: process
+  secrets:
+  - name: cred:api_key
+    scope: startup
+    rotation: live
+    required: true
+  # Go-first (ADR-0065 R4): a method declares only its name and description.
+  # Its request/response contract is derived by the SDK from the typed Go
+  # structs registered with plugin.WithHandler — there is no request_proto or
+  # response_proto here.
+  methods:
+  - name: Echo
+    description: "Echo returns the request message unchanged."
+  health:
+    startup_timeout: 30s
+    liveness_interval: 10s

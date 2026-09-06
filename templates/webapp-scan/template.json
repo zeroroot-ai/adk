@@ -1,0 +1,33 @@
+{
+  "name": "webapp-scan",
+  "description": "Crawl + active scan a web application.",
+  "version": "1.0.0",
+  "nodes": {
+    "crawl": {
+      "id": "crawl",
+      "type": "NODE_TYPE_AGENT",
+      "agentConfig": {
+        "agentName": "webcrawl-agent"
+      }
+    },
+    "scan": {
+      "id": "scan",
+      "type": "NODE_TYPE_AGENT",
+      "agentConfig": {
+        "agentName": "webvuln-agent"
+      }
+    }
+  },
+  "edges": [
+    {
+      "from": "crawl",
+      "to": "scan"
+    }
+  ],
+  "entryPoints": [
+    "crawl"
+  ],
+  "exitPoints": [
+    "scan"
+  ]
+}

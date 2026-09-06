@@ -1,0 +1,61 @@
+# Deploy checklist for demo-agent
+
+The CLI does not orchestrate clusters. This checklist is what you run
+yourself when promoting the agent from local dev to a Kubernetes
+deployment.
+
+## Before deploy
+
+- [ ] `make test` passes locally
+- [ ] `gibson component validate` passes (schema + sanity)
+- [ ] `gibson inspect` shows the expected component grants under your
+      pinned tenant
+- [ ] `make image` produces a tagged image (semver)
+- [ ] Image pushed to your registry and reachable from the cluster
+
+## Manifest essentials
+
+A standard agent Deployment looks like:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-agent
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: agent
+        image: <registry>/demo-agent:0.1.0
+        ports:
+        - containerPort: 50051
+        env:
+        - name: GIBSON_URL
+          value: <daemon URL>
+        - name: GIBSON_AGENT_KEY
+          valueFrom:
+            secretKeyRef: { name: demo-agent-creds, key: agent_key }
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8080 }
+        readinessProbe:
+          httpGet: { path: /readyz, port: 8080 }
+```
+
+`GIBSON_AGENT_KEY` is the base64(JSON) runtime credential — the
+`.credential` object from `~/.gibson/agent/demo-agent.runtime.json` after
+a local `gibson component register`, or one minted headless for CI. The
+Secret holds it under `agent_key`; never commit it. This is the same
+capability-grant credential every component kind uses — only the FGA
+policy on the principal differs.
+
+## Production discipline
+
+- Production K8s is GitOps-driven (`enterprise/gitops/`). **Do not
+  `kubectl apply`** in prod without explicit approval.
+- For the dev kind cluster, `kubectl apply` is fine.
+- Image tags must be immutable (no `:latest`) so rollbacks are
+  deterministic.
+- Set `terminationGracePeriodSeconds` ≥ 60 so the agent's drain logic
+  in `agent.Shutdown()` has time to complete.

@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make *)",
+      "Bash(gibson *)",
+      "Bash(buf *)",
+      "Bash(go build *)",
+      "Bash(go test *)",
+      "Bash(go vet *)",
+      "Bash(go mod tidy)",
+      "Bash(go mod download)",
+      "Bash(kubectl get *)",
+      "Bash(kubectl describe *)",
+      "Bash(kubectl logs *)",
+      "Bash(docker build *)",
+      "Bash(docker images)",
+      "Bash(docker ps)"
+    ],
+    "deny": [
+      "Bash(kubectl apply *)",
+      "Bash(kubectl patch *)",
+      "Bash(kubectl delete *)",
+      "Bash(helm install *)",
+      "Bash(helm upgrade *)",
+      "Bash(helm uninstall *)",
+      "Bash(rm -rf ~/.gibson*)",
+      "Bash(curl * ~/.gibson*)"
+    ]
+  }
+}

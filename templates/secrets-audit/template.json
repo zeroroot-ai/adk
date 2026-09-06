@@ -1,0 +1,20 @@
+{
+  "name": "secrets-audit",
+  "description": "Scan a repository for committed secrets.",
+  "version": "1.0.0",
+  "nodes": {
+    "leaks": {
+      "id": "leaks",
+      "type": "NODE_TYPE_AGENT",
+      "agentConfig": {
+        "agentName": "gitleaks-agent"
+      }
+    }
+  },
+  "entryPoints": [
+    "leaks"
+  ],
+  "exitPoints": [
+    "leaks"
+  ]
+}

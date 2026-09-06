@@ -1,0 +1,32 @@
+---
+title: Webapp Scan
+description: Crawl + active scan a web application.
+---
+
+# Webapp Scan
+
+Run a two-stage assessment of a web application:
+
+1. **`crawl`** — `webcrawl-agent` discovers reachable URLs,
+   endpoints, parameters.
+2. **`scan`** — `webvuln-agent` runs an active vulnerability scan
+   against the discovered surface.
+
+## Override before running
+
+| Field | What to set |
+|---|---|
+| `target_ref` | Target name or ID (must point at a webapp target). |
+
+## Output shape
+
+Findings include reachable URLs (from crawl), confirmed
+vulnerabilities (from scan), and any authentication-failure
+events surfaced by the agents.
+
+## Customizations
+
+- Add an authentication-warmup agent upstream of `crawl` to
+  obtain a session before crawling.
+- Swap `webvuln-agent` for a more specialized scanner (sqli,
+  xss-only, dependency-check).

@@ -1,0 +1,53 @@
+version: "1.0"
+
+# Compliance vocabulary for SOC2 CC6 (Common Criteria — Logical and Physical
+# Access Controls) and the NIST AI Risk Management Framework (AI RMF).
+#
+# This is the richest worked example of an ontology.yaml. It shows:
+#   - Multiple prefix declarations (cross-standard vocabulary)
+#   - A hierarchy rooted at soc2:CC6 with child controls
+#   - A cross-standard equivalence: least-privilege appears in both SOC2
+#     and NIST AI RMF, so the Reasoner can bridge queries across standards
+#   - An inverse-functional property (control_id) for node deduplication
+#
+# Run `gibson component generate` after editing to regenerate gen/.
+
+prefixes:
+  soc2:    "https://trust.aicpa.org/soc2#"
+  nist-ai: "https://airc.nist.gov/rmf#"
+
+# SOC2 CC6 family — Logical and Physical Access Controls.
+#
+# CC6 is the root. CC6.1 through CC6.3 are the specific controls most
+# commonly relevant to software components handling authentication,
+# authorisation, and secrets management.
+hierarchies:
+  - node_type: control
+    label: soc2:CC6
+    sub_class_of: ""
+  - node_type: control
+    label: soc2:CC6.1
+    sub_class_of: soc2:CC6
+  - node_type: control
+    label: soc2:CC6.2
+    sub_class_of: soc2:CC6
+  - node_type: control
+    label: soc2:CC6.3
+    sub_class_of: soc2:CC6
+
+# Cross-standard equivalence: SOC2 CC6.1 (least privilege / logical access
+# restrictions) maps to NIST AI RMF GOVERN-1.1 (policies ensuring AI system
+# accountability and least-privilege access).
+#
+# This equivalence lets a single compliance-check finding be reported as
+# satisfying (or violating) both standards simultaneously, without requiring
+# the operator to write two separate checks.
+equivalences:
+  - [soc2:CC6.1, nist-ai:GOVERN-1.1]
+
+# control_id uniquely identifies a control within the compliance graph.
+# The Reasoner uses this IFP to deduplicate control nodes that arrive from
+# multiple components or are referenced in multiple findings.
+ifps:
+  - node_type: control
+    property: control_id

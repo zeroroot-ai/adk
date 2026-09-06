@@ -1,0 +1,28 @@
+---
+title: Secrets Audit
+description: Repository secrets audit (gitleaks-style).
+---
+
+# Secrets Audit
+
+Scan a repository for committed secrets. Single-agent mission
+running `gitleaks-agent` across the repo's history.
+
+## Override before running
+
+| Field | What to set |
+|---|---|
+| `target_ref` | A repo target (name or ID). |
+
+## Output shape
+
+Findings include the secret type (api-key, ssh-key, oauth-token,
+etc.), the offending file path, the commit hash that introduced
+it, and an entropy score.
+
+## Customizations
+
+- Add a downstream `notify-agent` that opens a ticket for each
+  high-entropy match.
+- Add an `unused-creds` filter agent if you only care about
+  active credentials.

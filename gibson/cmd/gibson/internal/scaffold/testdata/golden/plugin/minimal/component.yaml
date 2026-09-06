@@ -1,0 +1,9 @@
+apiVersion: component.gibson.zeroroot.ai/v1
+kind: plugin
+metadata:
+  name: byte-identity
+  version: 0.1.0
+  description: "byte-identity plugin"
+spec:
+  runtime: process
+  manifest_path: ./plugin.yaml

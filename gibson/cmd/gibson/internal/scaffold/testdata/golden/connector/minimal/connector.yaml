@@ -1,0 +1,23 @@
+# demo-connector connector — a declarative MCP integration (ADR-0065 R6).
+#
+# This manifest IS the connector: no Go, no image build. Drop it into the
+# integrations repo under connectors/demo-connector/ and gibson derives a
+# product-catalog entry from it and reconciles a ConnectorInstance. Edit the
+# fields for your vendor; `go test ./...` validates the shape.
+id: demo-connector
+vendor: demo-connector
+displayName: DemoConnector
+description: >-
+  TODO: one sentence describing the tools this connector exposes.
+# shape: Remote  → a vendor-hosted MCP server gibson proxies (set endpoint,
+#                  never image).
+#        Hosted  → a container image gibson runs on ToolHive (set image,
+#                  never endpoint).
+shape: Remote
+endpoint: https://REPLACE-ME.example.com/api/mcp
+transport: streamable-http
+egressAllow:
+  - REPLACE-ME.example.com:443
+# auth: none | secret | oauth. Set oauthScope when auth is oauth.
+auth: oauth
+oauthScope: mcp

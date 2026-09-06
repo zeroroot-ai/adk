@@ -1,0 +1,14 @@
+# Helm wiring stub for the byte-identity plugin.
+#
+# Add this fragment under the gibson umbrella chart's `plugins:` map to deploy
+# this plugin as a pod-runtime workload. The image is built and pushed by the
+# integrations-repo CI (one image per plugin module); pin the digest the CI
+# published rather than a moving tag before promoting to production.
+byte-identity:
+  enabled: true
+  image:
+    repository: ghcr.io/zeroroot-ai/integrations/byte-identity
+    tag: 0.1.0
+  runtime: pod
+  # secrets: the broker resolves any cred:/provider_config: names declared in
+  # plugin.yaml; nothing is passed through Helm values.

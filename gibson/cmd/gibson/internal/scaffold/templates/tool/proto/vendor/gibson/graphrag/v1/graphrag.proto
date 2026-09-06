@@ -1,0 +1,281 @@
+// Graph read-model types for proto-canonical operations.
+// This file provides DiscoveryResult — the tool response field 100 the
+// daemon auto-extracts into the World (ADR-0007) — and the graph node types.
+
+syntax = "proto3";
+package gibson.graphrag.v1;
+
+import "taxonomy/v1/taxonomy.proto";
+
+option go_package = "github.com/zeroroot-ai/sdk/api/gen/gibson/graphrag/v1;graphragpb";
+option java_multiple_files = true;
+option csharp_namespace = "Gibson.Graphrag";
+
+// GraphQuery represents a query against the knowledge graph using proto-canonical types.
+message GraphQuery {
+  string text = 1;
+  repeated float embedding = 2;
+  int32 top_k = 3;
+  repeated string node_types = 4;
+  double min_score = 5;
+  double max_score = 6;
+  string mission_id = 7;
+  string mission_run_id = 8;
+  QueryScope scope = 9;
+  map<string, string> filters = 10;
+  double vector_weight = 11;
+  double graph_weight = 12;
+}
+
+// QueryScope defines the scope of a graph query.
+enum QueryScope {
+  QUERY_SCOPE_UNSPECIFIED = 0;
+  QUERY_SCOPE_MISSION = 1;
+  QUERY_SCOPE_MISSION_RUN = 2;
+  QUERY_SCOPE_GLOBAL = 3;
+}
+
+// QueryResult represents a single result from a graph query.
+message QueryResult {
+  GraphNode node = 1;
+  double score = 2;
+  double vector_score = 3;
+  double graph_score = 4;
+  repeated string path = 5;
+  int32 distance = 6;
+}
+
+// GraphNode represents a node in the knowledge graph.
+// This is the proto-canonical representation for storage and query operations.
+message GraphNode {
+  string id = 1;
+  string type = 2;  // Node type (e.g., "host", "port", "finding")
+  map<string, Value> properties = 3;
+
+  // Content for semantic search (optional)
+  string content = 4;
+
+  // Scoping fields (injected by harness)
+  string mission_id = 10;
+  string mission_run_id = 11;
+  string agent_run_id = 12;
+  string discovered_by = 13;
+  int64 discovered_at = 14;
+
+  // Timestamps
+  int64 created_at = 20;
+  int64 updated_at = 21;
+
+  // Parent reference
+  optional string parent_id = 30;
+  optional string parent_type = 31;
+  optional string parent_relationship = 32;
+}
+
+// Value represents a dynamic property value.
+message Value {
+  oneof kind {
+    string string_value = 1;
+    int64 int_value = 2;
+    double double_value = 3;
+    bool bool_value = 4;
+    bytes bytes_value = 5;
+    int64 timestamp_value = 6;
+    ListValue list_value = 7;
+    MapValue map_value = 8;
+  }
+}
+
+message ListValue {
+  repeated Value values = 1;
+}
+
+message MapValue {
+  map<string, Value> fields = 1;
+}
+
+// Relationship represents a connection between two nodes.
+message Relationship {
+  string id = 1;
+  string from_id = 2;
+  string to_id = 3;
+  string type = 4;
+  map<string, Value> properties = 5;
+  double weight = 6;
+
+  // Scoping
+  string mission_id = 10;
+  string mission_run_id = 11;
+
+  // Timestamps
+  int64 created_at = 20;
+}
+
+// ==================== DISCOVERY RESULT ====================
+
+// DiscoveryResult is a standardized container for tool-discovered entities.
+// Tools populate this message and Gibson automatically persists to the graph.
+message DiscoveryResult {
+  // Asset discoveries
+  repeated Host hosts = 1;
+  repeated Port ports = 2;
+  repeated Service services = 3;
+  repeated Endpoint endpoints = 4;
+  repeated Domain domains = 5;
+  repeated Subdomain subdomains = 6;
+  repeated Technology technologies = 7;
+  repeated Certificate certificates = 8;
+
+  // Security findings
+  repeated Finding findings = 9;
+  repeated Evidence evidence = 10;
+
+  // Custom extensions
+  repeated CustomNode custom_nodes = 20;
+  repeated ExplicitRelationship explicit_relationships = 21;
+
+  // Compliance signals — daemon-emitted observations of harness calls.
+  // Populated exclusively by the daemon ComplianceMiddleware (agents and tools
+  // never self-report). Routed through the same DiscoveryResult → processor →
+  // loader pipeline as asset discoveries so signals land in Neo4j with the
+  // EMITTED_SIGNAL parent relationship to the originating agent_run.
+  repeated taxonomy.v1.ComplianceSignal compliance_signals = 22;
+}
+
+// Host discovered by a tool.
+message Host {
+  optional string id = 1;  // Agent-generated UUID for this host
+  string ip = 2;
+  optional string hostname = 3;
+  optional string state = 4;
+  optional string os = 5;
+  optional string os_version = 6;
+  optional string mac_address = 7;
+}
+
+// Port discovered on a host.
+message Port {
+  optional string id = 1;  // Agent-generated UUID for this port
+  string host_id = 2;  // Parent Host UUID
+  int32 number = 3;
+  string protocol = 4;
+  optional string state = 5;
+  optional string reason = 6;
+}
+
+// Service running on a port.
+message Service {
+  optional string id = 1;  // Agent-generated UUID for this service
+  string port_id = 2;  // Parent Port UUID
+  string name = 3;
+  optional string product = 4;
+  optional string version = 5;
+  optional string extra_info = 6;
+  optional string banner = 7;
+  optional string cpe = 8;
+}
+
+// Endpoint (URL) on a service.
+message Endpoint {
+  optional string id = 1;  // Agent-generated UUID for this endpoint
+  string service_id = 2;  // Parent Service UUID
+  string url = 3;
+  optional string method = 4;
+  optional int32 status_code = 5;
+  optional string content_type = 6;
+  optional int64 content_length = 7;
+  optional string title = 8;
+}
+
+// Domain discovered.
+message Domain {
+  optional string id = 1;  // Agent-generated UUID for this domain
+  string name = 2;
+  optional string registrar = 3;
+  optional int64 created_date = 4;
+  optional int64 expiry_date = 5;
+}
+
+// Subdomain under a domain.
+message Subdomain {
+  optional string id = 1;  // Agent-generated UUID for this subdomain
+  string domain_id = 2;  // Parent Domain UUID
+  string name = 3;
+  optional string full_name = 4;
+}
+
+// Technology detected.
+message Technology {
+  optional string id = 1;  // Agent-generated UUID for this technology
+  string name = 2;
+  optional string version = 3;
+  optional string category = 4;
+  optional int32 confidence = 5;
+  optional string cpe = 6;
+
+  // Parent entity reference (optional - tech can be associated with various entities)
+  optional string parent_id = 10;
+  optional string parent_type = 11;  // e.g., "service", "endpoint", "host"
+}
+
+// Certificate discovered.
+message Certificate {
+  optional string id = 1;  // Agent-generated UUID for this certificate
+  optional string subject = 2;
+  optional string issuer = 3;
+  optional string serial_number = 4;
+  optional int64 not_before = 5;
+  optional int64 not_after = 6;
+  optional string fingerprint_sha256 = 7;
+  optional string san = 8;
+
+  // Parent entity reference (optional - cert can be associated with various entities)
+  optional string parent_id = 10;
+  optional string parent_type = 11;  // e.g., "service", "endpoint", "host"
+}
+
+// Finding (vulnerability or security issue).
+message Finding {
+  optional string id = 1;  // Agent-generated UUID for this finding
+  string title = 2;
+  optional string description = 3;
+  string severity = 4;
+  optional double confidence = 5;
+  optional string category = 6;
+  optional string remediation = 7;
+  optional double cvss_score = 8;
+  optional string cve_ids = 9;
+
+  // Parent entity reference (optional - finding can be associated with various entities)
+  optional string parent_id = 10;
+  optional string parent_type = 11;  // e.g., "service", "endpoint", "host", "technology"
+}
+
+// Evidence for a finding.
+message Evidence {
+  optional string id = 1;  // Agent-generated UUID for this evidence
+  string finding_id = 2;  // Parent Finding UUID
+  string type = 3;
+  optional string content = 4;
+  optional string url = 5;
+}
+
+// CustomNode for entities not in standard taxonomy.
+message CustomNode {
+  string node_type = 1;
+  map<string, string> id_properties = 2;
+  map<string, string> properties = 3;
+  optional string parent_type = 4;
+  map<string, string> parent_id = 5;
+  optional string relationship_type = 6;
+}
+
+// ExplicitRelationship for custom connections.
+message ExplicitRelationship {
+  string from_type = 1;
+  map<string, string> from_id = 2;
+  string to_type = 3;
+  map<string, string> to_id = 4;
+  string relationship_type = 5;
+  map<string, string> properties = 6;
+}

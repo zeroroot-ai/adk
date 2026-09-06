@@ -1,0 +1,68 @@
+# Adding behaviour to {{.Name}}
+
+This agent's reasoning lives in the `execute` function in `main.go`.
+Most "add a feature" requests reduce to: extend `execute` with another
+LLM call, tool invocation, observation emit, or sub-agent delegation.
+
+## Calling the LLM
+
+```go
+resp, err := h.Complete(ctx, "primary", []llm.Message{
+    {Role: llm.RoleSystem, Content: "You are {{.Name}}."},
+    {Role: llm.RoleUser,   Content: task.Goal},
+})
+if err != nil {
+    return agent.Result{Status: agent.StatusFailed}, err
+}
+```
+
+If you need tool-use, declare `agent.FeatureToolUse` in your slot's
+`RequiredFeatures` and call `h.CompleteWithTools(...)`. The full
+options surface is in `core/sdk/llm/`.
+
+## Calling a tool
+
+Import the tool's generated proto bindings, then:
+
+```go
+req := &nmappb.NmapRequest{Targets: []string{"10.0.0.0/24"}}
+resp := &nmappb.NmapResponse{}
+if err := h.CallToolProto(ctx, "my-nmap-tool", req, resp); err != nil {
+    return agent.Result{Status: agent.StatusFailed}, err
+}
+```
+
+The agent does **not** author the knowledge graph from tool output — the
+daemon's DiscoveryProcessor handles that automatically by extracting
+field 100 (`DiscoveryResult`) from the tool's response.
+
+## Emitting observations
+
+When *your own reasoning* establishes something about the target — a
+host, a service, a domain, a credential — emit it as a typed observation.
+You report what you saw; the brain resolves identity and topology and
+projects the World into the graph (ADR-0007). You never author graph
+nodes or edges, and you never read the graph back — the relevant world
+state is ambiently projected into your task (ADR-0001).
+
+```go
+err := h.Observe(ctx, agent.HostObservation{
+    Address: "10.0.0.5",
+    Ports: []agent.PortObservation{
+        {Number: 22, Protocol: "tcp", Service: "ssh", Product: "OpenSSH", Version: "8.9p1"},
+    },
+})
+```
+
+The observation types (`HostObservation`, `DomainObservation`,
+`SubdomainObservation`, `CredentialObservation`, `AccountObservation`,
+with ports/services/endpoints/certificates as sub-state) are in
+`core/sdk/agent/observation.go`. To report a security finding, use
+`h.SubmitFinding(ctx, f)` instead.
+
+## Adding an LLM slot
+
+Edit the `sdk.NewAgent(...)` call in `main.go` to add another
+`sdk.WithLLMSlot(...)`. Slots are independent — you can have a fast
+small-context slot for filtering and a primary slot for reasoning, and
+the harness resolves them to different providers.

@@ -1,0 +1,41 @@
+# ontology.yaml — optional vocabulary extension for component {{.Name}}.
+#
+# Declare custom prefix:localname IRIs that your component introduces to the
+# Gibson security graph. The `gibson component generate` command reads this
+# file and emits gen/ontology_extension.go; the generated OntologyExtension()
+# function is called during component registration so the daemon's Reasoner
+# knows about your vocab.
+#
+# If your component does not introduce custom vocabulary, you can delete this
+# file or leave the prefixes map empty. The generated gen/ code handles both
+# cases gracefully.
+#
+# See docs/ontology-authoring.md for the full YAML reference.
+
+version: "1.0"
+
+# prefixes maps short names to base IRIs. Every prefix:localname reference
+# below must have a matching entry here.
+prefixes: {}
+
+# hierarchies declares subClassOf relationships. Each entry binds a child IRI
+# to its parent within a given GraphRAG node type.
+# Example:
+#   - node_type: control
+#     label: myns:MyControl
+#     sub_class_of: myns:MyControlFamily
+hierarchies: []
+
+# equivalences declares sameAs pairs. Each entry asserts that two IRIs from
+# different vocabularies identify the same concept, letting the Reasoner
+# bridge query results across vocabularies.
+# Example:
+#   - [myns:MyControl, mitre:T1234]
+equivalences: []
+
+# ifps (inverse-functional properties) declare which property on a node type
+# uniquely identifies that node. Used by the Reasoner for deduplication.
+# Example:
+#   - node_type: control
+#     property: control_id
+ifps: []

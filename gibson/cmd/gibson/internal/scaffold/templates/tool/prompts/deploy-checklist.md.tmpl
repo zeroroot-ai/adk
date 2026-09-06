@@ -1,0 +1,74 @@
+# Deploy checklist for {{.Name}}
+
+Tools are stateless. They scale horizontally — replicas can come and go
+without coordination — so production deploys are usually 3+ replicas
+behind an HPA driven by tool queue depth.
+
+## Before deploy
+
+- [ ] `make proto && make build && make test` passes locally
+- [ ] `gibson component validate` passes
+- [ ] `gibson inspect` shows the tool's principal with the expected
+      grants
+- [ ] Generated `api/gen/` is **not** committed (it's regenerated)
+- [ ] `make image` produces a tagged image (semver)
+- [ ] Image pushed and reachable from the cluster
+
+## Manifest essentials
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Name}}
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: tool
+        image: <registry>/{{.Name}}:{{.Version}}
+        env:
+        - name: GIBSON_URL
+          value: <daemon URL>
+        - name: GIBSON_AGENT_KEY
+          valueFrom:
+            secretKeyRef: { name: {{.Name}}-creds, key: agent_key }
+        # Platform mode (preferred for tools — tool polls the daemon for work):
+        - name: PLATFORM_URL
+          value: gibson:50002
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{.Name}}
+spec:
+  scaleTargetRef: { kind: Deployment, name: {{.Name}} }
+  minReplicas: 1
+  maxReplicas: 20
+  metrics:
+  - type: External
+    external:
+      metric:
+        name: gibson_tool_queue_depth
+        selector: { matchLabels: { tool: "{{.Name}}" } }
+      target: { type: AverageValue, averageValue: "10" }
+```
+
+## Production discipline
+
+- Production K8s is GitOps-driven (`enterprise/gitops/`). **Do not
+  `kubectl apply`** in prod without explicit approval.
+- The dev kind cluster is fair game for `kubectl apply`.
+- Image tags must be immutable.
+- `terminationGracePeriodSeconds` ≥ 30 so in-flight `ExecuteProto`
+  calls drain.
+- Resource limits: tools are usually CPU-bound for the duration of a
+  call; size based on observed worst-case request, not average.
+
+## Observability
+
+- `serve.Tool` registers OTel spans on every `ExecuteProto` call;
+  trace to your tracing backend automatically.
+- Health probes are wired by `serve.Tool` — `/healthz` and `/readyz`
+  on port 8080.

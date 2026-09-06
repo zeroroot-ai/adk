@@ -1,0 +1,28 @@
+version: "1.0"
+
+# Vocabulary for credential-related findings discovered by a secrets-audit
+# component. Extend or remove entries to match the findings your component
+# actually emits.
+
+prefixes:
+  cred: "https://vocab.zeroroot.ai/credential#"
+  secrets-audit: "https://vocab.zeroroot.ai/secrets-audit#"
+
+# Credential finding hierarchy: root node + specific subtypes.
+hierarchies:
+  - node_type: weakness
+    label: cred:CredentialExposure
+    sub_class_of: ""
+  - node_type: weakness
+    label: cred:HardcodedSecret
+    sub_class_of: cred:CredentialExposure
+  - node_type: weakness
+    label: cred:LeakedAPIKey
+    sub_class_of: cred:CredentialExposure
+
+equivalences: []
+
+# credential_id uniquely identifies a credential finding in the graph.
+ifps:
+  - node_type: weakness
+    property: credential_id

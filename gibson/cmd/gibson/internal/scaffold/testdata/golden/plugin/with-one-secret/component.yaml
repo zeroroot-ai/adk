@@ -1,0 +1,9 @@
+apiVersion: component.gibson.zeroroot.ai/v1
+kind: plugin
+metadata:
+  name: byte-identity-secret
+  version: 1.2.3
+  description: "byte-identity-secret plugin"
+spec:
+  runtime: process
+  manifest_path: ./plugin.yaml

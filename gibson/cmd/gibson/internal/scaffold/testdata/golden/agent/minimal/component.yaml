@@ -1,0 +1,8 @@
+apiVersion: component.gibson.zeroroot.ai/v1
+kind: agent
+metadata:
+  name: demo-agent
+  version: 0.1.0
+  description: "demo-agent agent"
+spec:
+  main_path: ./

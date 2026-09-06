@@ -1,0 +1,9 @@
+apiVersion: component.gibson.zeroroot.ai/v1
+kind: plugin
+metadata:
+  name: byte-identity-multi
+  version: 0.99.0
+  description: "byte-identity-multi plugin"
+spec:
+  runtime: process
+  manifest_path: ./plugin.yaml

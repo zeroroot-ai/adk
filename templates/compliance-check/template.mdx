@@ -1,0 +1,27 @@
+---
+title: Compliance Check
+description: Cloud-config compliance check against a baseline policy.
+---
+
+# Compliance Check
+
+Audit a cloud account's configuration against a policy baseline.
+Single-agent mission running `compliance-agent`. Default baseline
+is the CIS benchmark matching the target's cloud provider.
+
+## Override before running
+
+| Field | What to set |
+|---|---|
+| `target_ref` | A cloud-account target (name or ID). |
+
+## Output shape
+
+Findings include the policy ID, the offending resource, the
+baseline reference, and a remediation hint.
+
+## Customizations
+
+- Wrap with a `report-agent` downstream to emit a SARIF or PDF
+  summary.
+- Run on a schedule via the dashboard's mission-schedule UI.

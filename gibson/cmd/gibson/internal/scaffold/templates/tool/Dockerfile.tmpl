@@ -1,0 +1,19 @@
+# Stage 1: build — compiles the tool binary with CGO disabled.
+FROM golang:1.26.4-alpine AS builder
+
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/{{.Name}} .
+
+# Stage 2: runtime — distroless, non-root.
+FROM gcr.io/distroless/static-debian12:nonroot AS runtime
+
+COPY --from=builder /out/{{.Name}} /{{.Name}}
+COPY component.yaml /component.yaml
+
+EXPOSE 50051
+
+ENTRYPOINT ["/{{.Name}}"]

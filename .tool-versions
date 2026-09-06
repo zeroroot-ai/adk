@@ -1,0 +1,10 @@
+# Shared toolchain pin (asdf / mise). One Go version for the whole repo.
+# Must match gibson/go.mod `go 1.26.4` and the mirror tag golang:1.26.4
+# (ghcr.io/zeroroot-ai/mirror/golang, added in .github#189). Bump both this
+# file and go.mod together — and any Dockerfile base — or builds drift.
+# Quality bar: docs/architecture/open-core/RESTRUCTURE-QUALITY-BARS.md §1.
+#
+# cue is NOT pinned here: it is installed via `go install
+# cuelang.org/go/cmd/cue@v0.16.1` (see the Makefile `ensure-cue`/`bootstrap`
+# targets), not via an asdf/mise plugin.
+golang 1.26.4

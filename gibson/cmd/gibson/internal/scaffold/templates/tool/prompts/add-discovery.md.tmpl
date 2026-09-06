@@ -1,0 +1,97 @@
+# Populating field 100 in {{.Name}}
+
+The platform-wide rule is: **proto field 100 on every tool response is
+`gibson.graphrag.v1.DiscoveryResult`**. The Gibson daemon's
+`DiscoveryProcessor` reflects on the response, finds field 100, and
+writes the entries (with their cross-references) into Neo4j as taxonomy-
+typed nodes and relationships — automatically, with no Cypher from you.
+
+This file is a guide to populating that field correctly.
+
+## The DiscoveryResult shape
+
+Read the source: `core/sdk/api/proto/gibson/graphrag/v1/graphrag.proto`
+(vendored at `proto/vendor/gibson/graphrag/v1/graphrag.proto`). It
+contains repeated fields for entity types — Hosts, Ports, Services,
+Findings, Domains, IPs, Vulnerabilities, etc. — each with a stable ID
+field and optional cross-reference IDs.
+
+## How edges are inferred
+
+The daemon does not require you to declare edges explicitly. When a
+sub-message has a foreign-key-shaped field (e.g. `Port.HostId`,
+`Service.PortId`), the DiscoveryProcessor turns that into a Neo4j edge
+of the appropriate taxonomy-defined type
+(`(:Port)-[:BELONGS_TO]->(:Host)`, `(:Service)-[:RUNS_ON]->(:Port)`,
+etc.) automatically.
+
+Use stable, human-meaningful IDs for those FK fields. IPs work for
+hosts; `host:port` strings work for ports.
+
+## Worked example — port-scanner-style tool
+
+```go
+import (
+    pb        "github.com/zeroroot-ai/{{.Name}}/api/gen/gibson/tools/{{.ProtoPkg}}/v1"
+    graphragpb "github.com/zeroroot-ai/sdk/api/gen/gibson/graphrag/v1"
+)
+
+func (t *{{.GoName}}Tool) ExecuteProto(ctx context.Context, in proto.Message) (proto.Message, error) {
+    req := in.(*pb.{{.GoName}}Request)
+
+    scan, err := runScan(ctx, req.Target)
+    if err != nil {
+        return nil, err
+    }
+
+    discovery := &graphragpb.DiscoveryResult{}
+    for _, h := range scan.Hosts {
+        discovery.Hosts = append(discovery.Hosts, &graphragpb.Host{
+            Ip:       h.IP,
+            Hostname: ptr(h.Hostname),
+        })
+        for _, p := range h.Ports {
+            discovery.Ports = append(discovery.Ports, &graphragpb.Port{
+                Number:   int32(p.Number),
+                Protocol: p.Protocol,
+                State:    ptr(p.State),
+                HostId:   h.IP,                                     // edge
+            })
+            if p.Service != "" {
+                discovery.Services = append(discovery.Services, &graphragpb.Service{
+                    Name:    p.Service,
+                    Version: p.Version,
+                    PortId:  fmt.Sprintf("%s:%d", h.IP, p.Number),  // edge
+                })
+            }
+        }
+    }
+
+    return &pb.{{.GoName}}Response{
+        RawOutput: scan.Raw,
+        Discovery: discovery,
+    }, nil
+}
+
+func ptr[T any](v T) *T { return &v }
+```
+
+After this tool returns, the daemon extracts field 100 into the World —
+the brain resolves identity and topology and projects it into the graph
+(ADR-0007). Components do **not** read the graph back: the calling agent
+never queries nodes, and the relevant world state is ambiently projected
+into its task (ADR-0001). Your tool's job ends at filling field 100.
+
+## Things to watch for
+
+- **Empty discovery is fine.** If the tool found nothing, leave
+  `Discovery: nil` (or set it to an empty `&graphragpb.DiscoveryResult{}`).
+- **Don't double-write** — the daemon dedupes on natural keys
+  (`Host.Ip`, `Port.HostId+Number`, etc.). You don't need to query
+  before adding.
+- **Stable IDs over time.** A re-scan should produce the same `Ip` /
+  `HostId` for the same real-world entity, so the graph deduplicates
+  cleanly across runs.
+- **Taxonomy enums** — fields like `Service.Category` use enums from
+  `core/sdk/api/proto/taxonomy/v1/taxonomy.proto` (vendored). Pick the
+  closest enum value; don't invent new ones.

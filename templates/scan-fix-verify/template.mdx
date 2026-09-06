@@ -1,0 +1,40 @@
+---
+title: Scan, Fix, Verify
+description: Scan a target, fix the findings on a bank, verify the fix.
+---
+
+# Scan, Fix, Verify
+
+Run a two-stage remediation against a web application:
+
+1. **`scan`** — `webvuln-agent` finds what is wrong on the target.
+2. **`fix`** — a job on a bank of always-on coding agents fixes the
+   findings in a worktree. `webvuln-agent` verifies the fix. The job
+   node sends the verifier's report back to the same job until the
+   score reaches `passingScore` or `maxPasses` runs out, then the
+   member opens a merge request.
+
+The loop lives inside the `fix` node. The mission graph stays a DAG.
+
+## Override before running
+
+| Field | What to set |
+|---|---|
+| `targetRef` | Target name or ID (must point at a webapp target). |
+| `jobConfig.bankRef` | The bank to open the job on, by name or ID. |
+| `repositories[0].connectorRef` | The connector that holds the forge credential, `connector/<name>`. |
+| `repositories[0].project` | The project path on the forge, for example `group/repo`. |
+
+## Output shape
+
+Findings from `scan`, then the job's deliverable: a merge request on
+`baseBranch` when the verifier accepts the work, or a `FAILED` verdict
+with the last verifier report when the passes run out.
+
+## Customizations
+
+- Raise `acceptance.maxPasses` to give the member more attempts.
+- Point `acceptance.verifierComponent` at a stricter verifier.
+- Set `deliverable` to `DELIVERABLE_KIND_PUSH_BRANCH` to push without
+  a merge request, or `DELIVERABLE_KIND_NONE` to keep the work in the
+  sandbox.

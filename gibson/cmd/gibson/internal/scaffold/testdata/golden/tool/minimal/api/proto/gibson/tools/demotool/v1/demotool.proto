@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package gibson.tools.demotool.v1;
+
+import "gibson/graphrag/v1/graphrag.proto";
+
+option go_package = "github.com/zeroroot-ai/demo-tool/api/gen/gibson/tools/demotool/v1;demotoolv1";
+
+// DemoToolRequest is the input the agent sends to this tool.
+// Add fields specific to your tool's contract.
+message DemoToolRequest {
+  // Replace with the real fields your tool needs.
+  string target = 1;
+}
+
+// DemoToolResponse is the structured result the agent receives.
+//
+// Field 100 is reserved platform-wide for gibson.graphrag.v1.DiscoveryResult.
+// The Gibson daemon's DiscoveryProcessor reflects on every tool response
+// and writes the entries into the GraphRAG (Neo4j) knowledge graph
+// automatically — see AGENTS.md and the README for the full contract.
+message DemoToolResponse {
+  // Add tool-specific result fields here.
+  string raw_output = 1;
+
+  // ── Field 100 is reserved for DiscoveryResult. ──
+  gibson.graphrag.v1.DiscoveryResult discovery = 100;
+}

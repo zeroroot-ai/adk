@@ -1,0 +1,34 @@
+# demo-agent
+
+A Gibson agent scaffolded by `gibson component init`.
+
+See **[AGENTS.md](./AGENTS.md)** for the full Gibson agent contract this
+scaffold implements (LLM slots, harness API, lifecycle, do-not-do
+list). What follows is the four-command quickstart.
+
+## Quickstart
+
+```sh
+# 1. Build
+make build
+
+# 2. Register (paste the bootstrap token from the dashboard's Register wizard)
+gibson component register --token <bootstrap-token>
+
+# 3. Run (reads the runtime credential from ~/.gibson/agent/)
+make run
+```
+
+## Container
+
+In a container the runtime credential is supplied as env, not an on-disk
+file: `GIBSON_AGENT_KEY` is the base64(JSON) credential (mount it from a
+Secret) and `GIBSON_URL` is the daemon dial target.
+
+```sh
+make image
+docker run --rm \
+  -e GIBSON_URL=https://api.zeroroot.ai \
+  -e GIBSON_AGENT_KEY="$(jq -c .credential ~/.gibson/agent/demo-agent.runtime.json | base64 -w0)" \
+  demo-agent:0.1.0
+```

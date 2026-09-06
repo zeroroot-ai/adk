@@ -1,0 +1,40 @@
+# AGENTS.md — {{.Name}} connector
+
+This directory is a **Gibson connector**: a declarative MCP integration
+(ADR-0065 R6). The single `connector.yaml` manifest IS the connector — there is
+no Go code and no image to build. gibson embeds first-party manifests and
+derives one catalog `Entry` per file; a self-hosted fork loads its own via the
+same path.
+
+## The manifest schema
+
+`connector.yaml` fields (mirrors gibson's
+`internal/platform/connectorcatalog`):
+
+- `id` — stable catalog id and tool namespace (`mcp:<id>:<tool>`). Required.
+- `vendor` — the vendor this integrates. Metadata, not the key.
+- `displayName` / `description` — catalog UI copy.
+- `shape` — `Remote` (a vendor-hosted MCP server gibson proxies) or `Hosted`
+  (a container image gibson runs on ToolHive).
+- `endpoint` — the vendor MCP URL. **Remote only** (must be unset for Hosted).
+- `image` — the container image. **Hosted only** (must be unset for Remote).
+- `transport` — the MCP transport the server speaks (e.g. `streamable-http`).
+- `egressAllow` — `host:port` targets the connector may reach.
+- `auth` — `none | secret | oauth`.
+- `oauthScope` — the vendor OAuth scope hint when `auth: oauth`.
+
+## Validate
+
+`go test ./...` parses `connector.yaml` and applies the same shape invariants
+gibson's catalog loader enforces (a Remote needs an endpoint and no image; a
+Hosted needs an image and no endpoint; `auth` must be one of the three values).
+The test never imports gibson — the integrations repo must not depend on the
+platform.
+
+## Do not
+
+- Do **not** add Go handler code — a connector is declarative. If you need Go
+  logic, you want a **plugin** (`--kind plugin`), not a connector.
+- Do **not** set both `endpoint` and `image`.
+- Do **not** put a credential in the manifest — `auth`/`oauthScope` describe how
+  gibson obtains one at runtime through the broker.

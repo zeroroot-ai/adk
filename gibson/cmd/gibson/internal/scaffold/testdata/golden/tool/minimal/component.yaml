@@ -1,0 +1,8 @@
+apiVersion: component.gibson.zeroroot.ai/v1
+kind: tool
+metadata:
+  name: demo-tool
+  version: 0.1.0
+  description: "demo-tool tool"
+spec:
+  main_path: ./

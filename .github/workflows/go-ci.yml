@@ -1,0 +1,238 @@
+name: go-ci
+
+# Thin caller for the canonical three-tier Go CI (Epic: cicd-efficiency, board
+# #44, slice S11b). See docs/architecture/CICD-CONTEXT.md and
+# docs/adr/0060-ci-runner-split-hosted-default-ephemeral-metal.md.
+#
+# Replaces the previous single ci.yml, which double-fired build/fmt/vet/test
+# (including `-race`) on both `pull_request` and `push:main`. This file
+# follows the org-wide trigger split instead:
+#
+#   pull_request -> fast tier:   quick contributor signal (mod-tidy drift,
+#                                vet, build, test -- no race).
+#   merge_group  -> heavy tier:  authoritative gate (race + govulncheck via
+#                                the reusable).
+#
+# adk's module lives at gibson/go.mod (module github.com/zeroroot-ai/adk/gibson),
+# NOT at the repo root -- go-mod-path: gibson everywhere below.
+#
+# The module cache hid this for a while. setup-go keys its cache on go.sum, so
+# the break only surfaced when the sdk pin moved to v0.177.0 (#251) and the
+# cache missed. Every job below now configures the same credential.
+#
+# INTENTIONAL TIER CHANGE: today's ci.yml runs `go test -race ./...` on every
+# pull_request. That moves here to the reusable's `heavy` tier, which only
+# runs on merge_group. This is the same trigger-split every other repo in
+# this epic slice adopts (mirrors gibson's go-ci.yml) -- race detection
+# becomes the merge_group-authoritative signal instead of a per-PR one. Not a
+# silent regression: called out explicitly in the PR body.
+#
+# gibson's own `make check-fmt` is not a step the reusable knows about, so it
+# stays a small native job on pull_request.
+#
+# lint stays native (golangci-lint-action@v9, install-mode: goinstall,
+# --new-from-rev diff scoping) instead of delegating to the reusable's
+# built-in golangci-lint step (skip-lint: true passed below): the reusable
+# pins golangci-lint-action to a fixed version that can silently diverge from
+# this repo's action-pinned version and Go toolchain -- the same "v2 trap"
+# gibson was already bitten by once (sdk#355/adk#154).
+#
+# check-cue-fresh and deadcode are both repo-specific static drift/reachability
+# gates the reusable has no notion of (multi-repo checkout + cue install;
+# whole-program deadcode analysis) -- kept native, unchanged, on pull_request.
+#
+# no-monorepo-shortcuts is a reusable call with no build/test surface of its
+# own; pinned to pull_request only here (see PR body for the merge_group
+# scoping rationale).
+
+on:
+  pull_request:
+  merge_group:
+
+concurrency:
+  group: go-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---- fast tier (pull_request): reusable mod-tidy/vet/build/test ----
+  fast:
+    if: github.event_name == 'pull_request'
+    uses: zeroroot-ai/.github/.github/workflows/reusable-go-ci.yml@cf1c48774b57e552ccdd17a2a4bba3f782587dbe # main, .github recreated 2026-09-06
+    with:
+      tier: fast
+      go-mod-path: gibson
+      skip-lint: true # adk runs its own pinned golangci-lint below (lint job)
+
+  # ---- heavy tier (merge_group): reusable race + govulncheck ----
+  heavy:
+    if: github.event_name == 'merge_group'
+    uses: zeroroot-ai/.github/.github/workflows/reusable-go-ci.yml@cf1c48774b57e552ccdd17a2a4bba3f782587dbe # main, .github recreated 2026-09-06
+    with:
+      tier: heavy
+      go-mod-path: gibson
+
+  # ---- gofmt gate (fast tier / pull_request) ----
+  # Not covered by the reusable; cheap enough to run as its own small job.
+  check-fmt:
+    if: github.event_name == 'pull_request'
+    name: check-fmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: gibson
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: gibson/go.mod
+          cache: true
+          cache-dependency-path: gibson/go.sum
+
+      - name: Fmt
+        run: make check-fmt
+
+  # check-cue-fresh: drift gate for the embedded mission CUE schema.
+  # Mirrors the dashboard's check-mission-schema-fresh pattern. Fails
+  # when gibson/cmd/gibson/cmd/mission/schema/.../mission_definition_proto_gen.cue
+  # has drifted from the SDK proto.
+  #
+  # Runs in FULL mode here because we explicitly check out the SDK
+  # sibling repository alongside this one -- same workspace layout the
+  # script expects on a developer's workstation
+  # (~/Code/zeroroot.ai/opensource/{adk,sdk}). The SDK is checked out
+  # without history (depth: 1) and at its default branch, which is the
+  # right answer for a drift gate: drift is defined against the
+  # current SDK main, the same surface every customer-installed CLI
+  # will eventually consume.
+  #
+  # Spec: zeroroot-ai/adk#27 (mission-author-experience epic, M3). Kept
+  # native and unchanged -- the reusable has no notion of multi-repo
+  # checkouts.
+  check-cue-fresh:
+    if: github.event_name == 'pull_request'
+    name: check-cue-fresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: adk
+    steps:
+      - name: Checkout adk
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: adk
+
+      # sdk is private: the default GITHUB_TOKEN is scoped to adk only and
+      # this checkout answers "Not Found" without a cross-repo token.
+      - name: Checkout sdk (sibling)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: zeroroot-ai/sdk
+          path: sdk
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: adk/gibson/go.mod
+          cache: true
+          cache-dependency-path: adk/gibson/go.sum
+
+      - name: Install cue
+        run: go install cuelang.org/go/cmd/cue@v0.16.1
+
+      - name: Prime buf protovalidate cache (SDK dep)
+        working-directory: sdk
+        run: |
+          # The cue import proto pipeline reads protovalidate's .proto files
+          # from buf's module cache; `buf dep update` populates that cache
+          # against the SDK's buf.yaml/buf.lock without generating any code.
+          # buf is pinned as a go.mod `tool` dependency in the SDK, so
+          # `go tool buf` is hermetic and npm-free (SDK Makefile: `BUF := go
+          # tool buf`). The old `npm ci` assumed a package.json the SDK does
+          # not ship and failed at setup on every PR (adk#185).
+          go tool buf dep update
+
+      - name: Run check-cue-fresh
+        run: make check-cue-fresh
+
+  # lint: diff-scoped golangci-lint. BLOCKING on issues a PR introduces
+  # (--new-from-rev), while the pre-existing backlog is burned down under
+  # adk#160. golangci-lint is built from the repo-pinned toolchain
+  # (gibson/go.mod => go 1.26.6) so it can analyze go1.26 source; the action
+  # handles version resolution + caching. Quality bar §3. Kept native --
+  # see the "v2 trap" note at the top of this file.
+  lint:
+    if: github.event_name == 'pull_request'
+    name: lint (new code)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # golangci-lint --new-from-rev needs history back to the base.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: gibson/go.mod
+          cache: true
+          cache-dependency-path: gibson/go.sum
+
+      - name: golangci-lint (new issues only)
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
+        with:
+          version: v2.6.2
+          working-directory: gibson
+          # Build golangci-lint from source with the runner's pinned Go
+          # (1.26.6 from setup-go). The prebuilt release binary is compiled
+          # with go1.25 and refuses a config targeting go 1.26.6
+          # ("Go language version used to build golangci-lint is lower than
+          # the targeted Go version"), so we must compile it ourselves.
+          install-mode: goinstall
+          # Gate only the diff vs the PR base so new code is held to the
+          # full linter set without red-walling on the backlog (adk#160).
+          args: --new-from-rev=${{ github.event.pull_request.base.sha || 'HEAD~1' }} --timeout=8m
+
+  # deadcode: BLOCKING whole-program reachability gate (x/tools deadcode),
+  # minus the allowlisted pre-existing backlog (scripts/deadcode-allow.txt,
+  # adk#159). Fails on any NEW unreachable function. Quality bar §3. Kept
+  # native -- the reusable has no notion of whole-program deadcode analysis.
+  deadcode:
+    if: github.event_name == 'pull_request'
+    name: deadcode
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: adk
+    steps:
+      - name: Checkout adk
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: adk
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: adk/gibson/go.mod
+          cache: true
+          cache-dependency-path: adk/gibson/go.sum
+
+      - name: Install deadcode (pinned toolchain)
+        run: go install golang.org/x/tools/cmd/deadcode@v0.49.0
+
+      - name: Run deadcode gate
+        run: make deadcode
+
+  # no-monorepo-shortcuts has no build/test surface of its own -- explicitly
+  # scoped to pull_request only so it doesn't also fire (wastefully, or
+  # erroneously if it assumes PR-only context) on merge_group. No evidence
+  # in the org reusable or its callers elsewhere in the epic that it needs
+  # to also gate merge_group; default conservative choice per the parent
+  # task brief.
+  no-monorepo-shortcuts:
+    if: github.event_name == 'pull_request'
+    uses: zeroroot-ai/.github/.github/workflows/no-monorepo-shortcuts.yml@cf1c48774b57e552ccdd17a2a4bba3f782587dbe # main, .github recreated 2026-09-06

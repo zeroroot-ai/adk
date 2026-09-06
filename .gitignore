@@ -1,0 +1,20 @@
+# Compiled binaries (the gibson CLI builds to gibson/bin/ — never commit it).
+gibson/bin/
+*.test
+*.out
+
+# Coverage
+coverage.html
+coverage.out
+
+# Editor + OS cruft
+.DS_Store
+.idea/
+.vscode/
+
+# Go module / build cache (rare, but possible)
+/vendor/
+
+# Local Claude Code harness state (never commit) — anchored to the repo root
+# so the scaffold-template / golden .claude/ dirs under gibson/ are unaffected.
+/.claude/

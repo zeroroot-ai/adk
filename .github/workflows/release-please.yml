@@ -1,0 +1,118 @@
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release-please:
+    name: release-please
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Mint App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ secrets.SDK_FANOUT_APP_ID }}
+          private-key: ${{ secrets.SDK_FANOUT_APP_PRIVATE_KEY }}
+          owner: zeroroot-ai
+          repositories: adk
+
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
+        id: release
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # ---------------------------------------------------------------------------
+  # Tell zeroroot-ai/docs-site to refresh its committed `cli-spec.json` from
+  # this release's `gibson docs cli` output (docs-site#26).
+  #
+  # ── Why this hangs off release-please rather than a `push: tags` workflow ──
+  # The job above runs with the default GITHUB_TOKEN, and tags pushed by
+  # GITHUB_TOKEN do not start new workflow runs. A standalone
+  # `on: push: tags: ['v*']` workflow here would therefore never fire on a real
+  # release while looking, in the file tree, like it does. Gating on
+  # `releases_created` in the same run sidesteps that entirely.
+  # (sdk can use a tag trigger because its release-please runs as a GitHub App.)
+  #
+  # ── Why this only signals ─────────────────────────────────────────────────
+  # The regeneration lives in docs-site (`.github/workflows/spec-sync.yml`): it
+  # checks this repo out at the released tag and runs its OWN `regen:cli`
+  # entrypoint (`go run ./cmd/gibson docs cli`), so the committed spec is
+  # byte-identical to a maintainer's local `pnpm regen:cli`. docs-site can read
+  # this repo with no credential (it is public), so all that has to cross the
+  # repo boundary is "a release happened".
+  #
+  # ── Credential ────────────────────────────────────────────────────────────
+  # `DOCS_SITE_DISPATCH_TOKEN` — a token with `contents: write` on
+  # zeroroot-ai/docs-site. Same secret name sdk's docs-spec-sync.yml reads:
+  # docs-site#26 asks for one cross-repo credential shared by both halves, so
+  # set it once as an org secret visible to `adk` and `sdk`.
+  #
+  # It is not provisioned yet. Until it is, this job warns and exits 0 rather
+  # than failing every release: docs-site's spec-sync also runs on a weekly
+  # schedule, so the refresh still happens, just later.
+  # ---------------------------------------------------------------------------
+  notify-docs-site:
+    name: notify docs-site
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Dispatch cli-spec refresh
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_SITE_DISPATCH_TOKEN }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::DOCS_SITE_DISPATCH_TOKEN is not configured for this repo, so docs-site was not notified. Its spec-sync workflow will still pick this release up on its weekly schedule, or immediately via 'gh workflow run spec-sync.yml -R zeroroot-ai/docs-site -f spec=cli'. See docs-site#26."
+            exit 0
+          fi
+          # An empty tag is fine — docs-site then resolves this repo's latest
+          # release tag itself.
+          echo "Notifying docs-site to refresh cli-spec from ref='${TAG:-<latest release tag>}'"
+          jq -n --arg ref "${TAG:-}" '{event_type:"refresh-cli-spec", client_payload:{ref:$ref}}' \
+            | gh api /repos/zeroroot-ai/docs-site/dispatches --input -
+
+      # Release-time automation nobody watches goes stale silently — sdk's
+      # buf-push was red across nine releases before anyone noticed (sdk#459).
+      # Same find-by-title / refresh-in-place failure signal.
+      - name: File or update tracked issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TITLE="ci(docs): notify-docs-site failed — docs-site cli-spec refresh is not being triggered"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY="## notify-docs-site failed\n\n"
+          BODY="${BODY}Run: ${RUN_URL}\nTag: \`${{ needs.release-please.outputs.tag_name }}\`\n\n"
+          BODY="${BODY}zeroroot-ai/docs-site was NOT told to refresh \`src/generated/cli-spec.json\`, so the published CLI reference will drift from this release's command surface.\n\n"
+          BODY="${BODY}Most likely cause: the \`DOCS_SITE_DISPATCH_TOKEN\` secret is missing or lacks \`contents: write\` on zeroroot-ai/docs-site (docs-site#26).\n\n"
+          BODY="${BODY}Manual recovery: \`gh workflow run spec-sync.yml -R zeroroot-ai/docs-site -f spec=cli -f ref=<tag>\`.\n\n"
+          BODY="${BODY}This issue is auto-filed by the notify-docs-site job's failure step and refreshed in place on each subsequent failure."
+          EXISTING=$(gh issue list -R "${{ github.repository }}" \
+                       --state open --search "in:title \"ci(docs): notify-docs-site failed\"" \
+                       --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            printf "%b" "$BODY" | gh issue comment "$EXISTING" -R "${{ github.repository }}" --body-file -
+          else
+            printf "%b" "$BODY" | gh issue create -R "${{ github.repository }}" --title "$TITLE" --body-file - --label "ready-for-human" || \
+              printf "%b" "$BODY" | gh issue create -R "${{ github.repository }}" --title "$TITLE" --body-file -
+          fi

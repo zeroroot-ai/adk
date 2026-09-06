@@ -1,0 +1,68 @@
+{
+  "name": "recon",
+  "description": "Reconnaissance across a target's exposed surface.",
+  "version": "1.0.0",
+  "nodes": {
+    "http": {
+      "id": "http",
+      "type": "NODE_TYPE_TOOL",
+      "toolConfig": {
+        "toolName": "httpx",
+        "input": {
+          "target": "example.com"
+        }
+      }
+    },
+    "ports": {
+      "id": "ports",
+      "type": "NODE_TYPE_TOOL",
+      "toolConfig": {
+        "toolName": "naabu",
+        "input": {
+          "ports": "21,22,25,53,80,110,143,443,465,587,993,995,3306,3389,5432,6379,8080,8443",
+          "target": "example.com"
+        }
+      }
+    },
+    "resolve": {
+      "id": "resolve",
+      "type": "NODE_TYPE_TOOL",
+      "toolConfig": {
+        "toolName": "dnsx",
+        "input": {
+          "target": "example.com"
+        }
+      }
+    },
+    "subdomains": {
+      "id": "subdomains",
+      "type": "NODE_TYPE_TOOL",
+      "toolConfig": {
+        "toolName": "subfinder",
+        "input": {
+          "target": "example.com"
+        }
+      }
+    }
+  },
+  "edges": [
+    {
+      "from": "subdomains",
+      "to": "resolve"
+    },
+    {
+      "from": "resolve",
+      "to": "http"
+    },
+    {
+      "from": "http",
+      "to": "ports"
+    }
+  ],
+  "entryPoints": [
+    "subdomains"
+  ],
+  "exitPoints": [
+    "ports"
+  ]
+}

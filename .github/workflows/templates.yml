@@ -1,0 +1,55 @@
+name: templates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  templates-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: gibson/go.mod
+          cache: true
+
+      - name: Build CLI
+        run: cd gibson && go build -o bin/gibson ./cmd/gibson
+
+      - name: Diagnostic — build environment identity
+        # Prints the knobs that determine protojson output stability so we
+        # can compare local vs CI when whitespace parity issues resurface.
+        # Root cause of adk#33: protojson/internal/detrand seeds from a hash
+        # of the binary; different builds → different seeds → different spacing.
+        # Fix is in render.go (compact marshal + json.Indent); this step
+        # provides a paper trail if the problem ever recurs.
+        run: |
+          echo "=== go version ==="
+          go version
+          echo "=== GOTOOLCHAIN ==="
+          go env GOTOOLCHAIN
+          echo "=== GOMODCACHE ==="
+          go env GOMODCACHE
+          echo "=== GOPROXY ==="
+          go env GOPROXY
+          echo "=== protobuf sha in go.sum ==="
+          grep "^google.golang.org/protobuf v1" gibson/go.sum
+          echo "=== binary sha256 ==="
+          sha256sum gibson/bin/gibson
+          echo "=== first rendered template (first 20 lines) ==="
+          ./gibson/bin/gibson mission render templates/recon/template.cue 2>&1 | head -20
+
+      - name: Run templates-check
+        # Builds the gibson CLI, then vets each template.cue through
+        # `gibson mission validate` (schema-aware, single code path),
+        # regenerates template.json via `gibson mission render`,
+        # and asserts no drift.
+        # Spec: mission-authoring-cue Requirement 9.
+        run: make templates-check

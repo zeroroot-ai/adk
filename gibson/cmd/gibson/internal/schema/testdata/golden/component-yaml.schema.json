@@ -1,0 +1,64 @@
+{
+  "$id": "https://schemas.zeroroot.ai/component-yaml-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "component.yaml",
+  "description": "The per-component pin file every Gibson component scaffolded by `gibson component init` ships. Records the kind (agent | tool | plugin), the component identity, and a small spec section read by gibson component validate / register / run.",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "component.gibson.zeroroot.ai/v1",
+      "description": "Schema version. Currently the only supported value."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["agent", "tool", "plugin"],
+      "description": "Which Gibson component shape this directory implements."
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
+          "description": "DNS-label-style identifier."
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic version string (e.g. 0.1.0)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description."
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "image": {
+          "type": "string",
+          "description": "Optional container image reference for build/deploy."
+        },
+        "main_path": {
+          "type": "string",
+          "description": "Path (relative to component.yaml) of the Go main package. Defaults to './'."
+        },
+        "runtime": {
+          "type": "string",
+          "enum": ["process", "pod", "setec"],
+          "description": "Plugin-only. Selects the runtime mode."
+        },
+        "manifest_path": {
+          "type": "string",
+          "description": "Plugin-only. Path to plugin.yaml. Defaults to './plugin.yaml'."
+        }
+      }
+    }
+  }
+}
