@@ -1,5 +1,9 @@
 # Stage 1: build — compiles the agent binary with CGO disabled.
-FROM golang:1.26.4-alpine AS builder
+FROM golang:1.26.8-alpine AS builder
+# GOTOOLCHAIN=local: the builder must carry the Go that go.mod names, so a
+# mismatch fails the build instead of downloading a toolchain.
+ARG GOTOOLCHAIN=local
+ENV GOTOOLCHAIN=${GOTOOLCHAIN}
 
 WORKDIR /build
 COPY go.mod go.sum ./

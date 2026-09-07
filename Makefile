@@ -87,8 +87,7 @@ generate: regen-cue
 # bootstrap: org Makefile contract target. "Just works" one-command dev
 # setup — installs the build/lint/dead-code toolchain at the pinned
 # versions so `make build|test|check` succeed on a clean checkout. The Go
-# toolchain itself is pinned by gibson/go.mod (`go 1.26.4`) + .tool-versions
-# and is fetched automatically by `go build` under GOTOOLCHAIN=auto.
+# toolchain itself is pinned by gibson/go.mod (`go 1.26.8`) + .tool-versions.
 # Quality bar: docs/architecture/open-core/RESTRUCTURE-QUALITY-BARS.md §1.
 bootstrap:
 	@echo "bootstrap: installing pinned dev toolchain"
@@ -140,7 +139,7 @@ lint-new:
 # (adk#159) is cleared, so there is no allowlist — the gate is fully
 # blocking for all dead code. Quality bar §3.
 #
-# deadcode must be built with the pinned toolchain (go 1.26.4) so it can
+# deadcode must be built with the pinned toolchain (go 1.26.8) so it can
 # analyze go1.26 source — `go run` pins it via go.mod under GOTOOLCHAIN.
 deadcode:
 	@command -v deadcode >/dev/null 2>&1 || { \
@@ -159,8 +158,8 @@ deadcode:
 # (`gibson`) distributed as a Go binary, NOT as a container image — there
 # is no first-party image to build or mirror-pin here. (The container
 # bases under gibson/.../scaffold are customer SCAFFOLD output, pinned to
-# the public golang:1.26.4-alpine to track the toolchain, not adk's own
-# build.) Target present for uniform-contract parity; intentional no-op.
+# the public golang:1.26.8-alpine, the Go that gibson/go.mod names, and
+# the org toolchain guard keeps them equal.) Target present for uniform-contract parity; intentional no-op.
 image:
 	@echo "image: adk ships a Go-binary CLI, no first-party container image (no-op)"
 
