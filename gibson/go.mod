@@ -9,7 +9,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.12.1
 	github.com/zeroroot-ai/ast-checks v0.3.0
-	github.com/zeroroot-ai/sdk v0.177.1
+	github.com/zeroroot-ai/sdk v0.177.2
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
