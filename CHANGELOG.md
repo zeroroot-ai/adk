@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.109.1](https://github.com/zeroroot-ai/adk/compare/v0.109.0...v0.109.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* **deps:** bump cel-go to v0.30.0 (GO-2026-6094) ([#7](https://github.com/zeroroot-ai/adk/issues/7)) ([eb564ec](https://github.com/zeroroot-ai/adk/commit/eb564ece49552b376e2fc099a67876d80e977bc7))
+
 ## [0.109.0](https://github.com/zeroroot-ai/adk/compare/v0.108.0...v0.109.0) (2026-08-29)
 
 
