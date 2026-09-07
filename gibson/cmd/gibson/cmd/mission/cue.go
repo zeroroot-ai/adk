@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"cuelang.org/go/cue"
+	"cuelang.org/go/cue/ast"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
 	"cuelang.org/go/cue/parser"
@@ -106,7 +107,14 @@ func hasImports(src []byte) bool {
 	if err != nil {
 		return false
 	}
-	return len(f.Imports) > 0
+	// cue 0.17 dropped ast.File.Imports; the import declarations are the
+	// *ast.ImportDecl entries among the file's declarations.
+	for _, d := range f.Decls {
+		if _, ok := d.(*ast.ImportDecl); ok {
+			return true
+		}
+	}
+	return false
 }
 
 // cuePath returns a cue.Path for the named field. Used by the
