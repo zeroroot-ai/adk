@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.109.2](https://github.com/zeroroot-ai/adk/compare/v0.109.1...v0.109.2) (2026-09-07)
+
+
+### Bug Fixes
+
+* **scaffold:** scaffold on the Go that the SDK names, GOTOOLCHAIN=local ([#15](https://github.com/zeroroot-ai/adk/issues/15)) ([c8420f6](https://github.com/zeroroot-ai/adk/commit/c8420f640a25103b57b0ed97f1c6940a03dbabaf))
+
 ## [0.109.1](https://github.com/zeroroot-ai/adk/compare/v0.109.0...v0.109.1) (2026-09-07)
 
 
