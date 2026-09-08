@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.109.3](https://github.com/zeroroot-ai/adk/compare/v0.109.2...v0.109.3) (2026-09-08)
+
+
+### Bug Fixes
+
+* drop deleted repos and workstation paths from the scaffold templates ([#17](https://github.com/zeroroot-ai/adk/issues/17)) ([184836d](https://github.com/zeroroot-ai/adk/commit/184836dedf6707cf34bb0b029dabd990aed0dd56))
+
 ## [0.109.2](https://github.com/zeroroot-ai/adk/compare/v0.109.1...v0.109.2) (2026-09-07)
 
 
