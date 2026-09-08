@@ -37,11 +37,10 @@ the GraphRAG (Neo4j) knowledge graph automatically.
 You write `Discovery: &graphragpb.DiscoveryResult{...}`. **You write
 zero Cypher.** The daemon owns the graph.
 
-This rule is documented in `enterprise/CLAUDE.md`, `structure.md`, and
-the platform-level proto guidelines. The SDK source for the
-DiscoveryResult type is at
-`core/sdk/api/proto/gibson/graphrag/v1/graphrag.proto` (vendored into
-this scaffold under `proto/vendor/`).
+The SDK source for the DiscoveryResult type is
+`api/proto/gibson/graphrag/v1/graphrag.proto` in
+<https://github.com/zeroroot-ai/sdk>. The scaffold vendors it under
+`proto/vendor/`.
 
 A worked example for a tool that scans hosts and reports services:
 

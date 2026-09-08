@@ -52,8 +52,8 @@ policy on the principal differs.
 
 ## Production discipline
 
-- Production K8s is GitOps-driven (`enterprise/gitops/`). **Do not
-  `kubectl apply`** in prod without explicit approval.
+- Deploy production through your GitOps tree or your Helm release.
+  **Do not `kubectl apply`** in prod without explicit approval.
 - For the dev kind cluster, `kubectl apply` is fine.
 - Image tags must be immutable (no `:latest`) so rollbacks are
   deterministic.

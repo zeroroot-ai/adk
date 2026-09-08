@@ -248,7 +248,8 @@ without requiring the SDK source tree on the customer's machine.
 The file
 `gibson/cmd/gibson/cmd/mission/schema/api/proto/gibson/mission/v1/mission_definition_proto_gen.cue`
 is GENERATED from the SDK proto at
-`opensource/sdk/api/proto/gibson/mission/v1/mission_definition.proto`
+`api/proto/gibson/mission/v1/mission_definition.proto` in
+<https://github.com/zeroroot-ai/sdk>
 via `cue import proto` plus two ADK-specific transforms (package
 rename `missionpb`→`v1`, alias-rewrite of the `typespb` import). Do
 not edit it by hand — drift between the embedded schema and the
