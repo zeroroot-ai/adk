@@ -46,7 +46,7 @@ func compileCUE(src []byte) (*cue.Context, cue.Value, error) {
 //
 // The user's CUE bytes are registered in the overlay alongside the
 // schema files, then loaded by absolute path. This means import
-// resolution works without the sibling opensource/sdk/ checkout or
+// resolution works without an SDK checkout or
 // any network fetch — the schema is baked into the adk binary via
 // //go:embed in schema.go.
 //

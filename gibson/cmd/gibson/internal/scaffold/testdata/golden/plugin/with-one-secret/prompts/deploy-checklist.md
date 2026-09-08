@@ -2,8 +2,10 @@
 
 Plugins are stateful and usually have one or two replicas (depending
 on whether your underlying integration tolerates concurrent state).
-Production plugins live in the helm chart at
-`enterprise/deploy/helm/gibson/templates/plugins/`.
+Production plugins live in the Gibson umbrella chart under
+`helm/gibson-workloads/templates/plugins/`. Install the chart with
+`helm install gibson oci://ghcr.io/zeroroot-ai/charts/gibson`. The
+chart source is <https://github.com/zeroroot-ai/charts>.
 
 ## Before deploy
 
@@ -72,8 +74,8 @@ spec:
 
 ## Production discipline
 
-- Production K8s is GitOps-driven (`enterprise/gitops/`). **Do not
-  `kubectl apply`** in prod without explicit approval.
+- Deploy production through your GitOps tree or your Helm release.
+  **Do not `kubectl apply`** in prod without explicit approval.
 - The dev kind cluster is fine for `kubectl apply`.
 - Image tags must be immutable.
 - `terminationGracePeriodSeconds` ≥ 30 so `OnStop` hooks and the

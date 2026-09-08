@@ -24,8 +24,8 @@ import (
 // The bundle mirrors the SDK's api/proto tree, so a template imports a
 // package at the same path it has in the SDK.
 //
-// Using //go:embed means schema validation works without the sibling
-// opensource/sdk/ checkout and without a network fetch. The bundle is
+// Using //go:embed means schema validation works without an SDK
+// checkout and without a network fetch. The bundle is
 // pinned to the adk module version via normal Go module semantics.
 //
 //go:embed schema

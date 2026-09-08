@@ -57,8 +57,8 @@ spec:
 
 ## Production discipline
 
-- Production K8s is GitOps-driven (`enterprise/gitops/`). **Do not
-  `kubectl apply`** in prod without explicit approval.
+- Deploy production through your GitOps tree or your Helm release.
+  **Do not `kubectl apply`** in prod without explicit approval.
 - The dev kind cluster is fair game for `kubectl apply`.
 - Image tags must be immutable.
 - `terminationGracePeriodSeconds` ≥ 30 so in-flight `ExecuteProto`
