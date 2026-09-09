@@ -158,7 +158,7 @@ import (
 	// agents must not contact. Enforcement is best-effort at the tool level.
 	blockedDomains?: [...string] @protobuf(8,string,name=blocked_domains)
 	// Fields 9-12 promoted from gibson.daemon.v1.MissionConstraints under
-	// ADR 0004 (https://github.com/zeroroot-ai/docs/blob/main/adr/0004-canonical-mission-constraints.md).
+	// ADR 0004, "Canonical MissionConstraints".
 	// The daemon-local type is deleted in the same change; this is now the
 	// single canonical MissionConstraints for the entire platform.
 
