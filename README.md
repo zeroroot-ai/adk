@@ -292,9 +292,9 @@ Spec: zeroroot-ai/adk#27.
 
 ## Spec
 
-The full design + tasks for this CLI lives at
-[`.spec-workflow/specs/adk-developer-workflow/`](../../.spec-workflow/specs/adk-developer-workflow/)
-(requirements, design, tasks, implementation logs).
+The design, requirements, tasks and implementation logs for this CLI live
+in the `adk-developer-workflow` specification. That specification is not in
+this repository.
 
 ## License and history
 
