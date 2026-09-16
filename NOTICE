@@ -1,0 +1,9 @@
+Gibson ADK
+Copyright 2026 Zero Root AI
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+This distribution includes no third-party source. The proto files under
+gibson/cmd/gibson/internal/scaffold/templates/tool/proto/vendor/ are generated
+from github.com/zeroroot-ai/sdk and carry the same copyright and license as
+this repository.
