@@ -31,7 +31,7 @@ Useful for:
 - Piping into other tooling (` + "`gibson mission render m.cue | jq …`" + `).
 
 Output is deterministic: protojson controls proto field ordering (camelCase,
-stable); encoding/json.Indent normalises whitespace, eliminating the
+stable); encoding/json.Indent normalizes whitespace, eliminating the
 binary-hash-seeded extra space that protojson's internal detrand inserts
 after colons to make builds non-reproducible.`,
 		Args: cobra.ExactArgs(1),

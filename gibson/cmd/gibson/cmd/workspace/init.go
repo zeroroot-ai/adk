@@ -28,7 +28,7 @@ func Command() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initialise a Gibson workspace (writes .gibson/workspace.yaml)",
+		Short: "Initialize a Gibson workspace (writes .gibson/workspace.yaml)",
 		Long: `init writes a workspace.yaml that pins GIBSON_URL for this workspace,
 so subsequent ` + "`" + `gibson component <verb>` + "`" + ` calls do not require
 the flag every time.

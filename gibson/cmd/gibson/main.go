@@ -6,7 +6,7 @@
 // It provides tooling for agent / tool / plugin authors and operators
 // working with the Gibson platform. Top-level verb groups:
 //
-//	gibson workspace   initialise and manage a Gibson workspace
+//	gibson workspace   initialize and manage a Gibson workspace
 //	gibson component   scaffold, build, validate, register, run components
 //	                   (--kind agent | tool | plugin)
 //	gibson mission     author, validate, render, and submit missions

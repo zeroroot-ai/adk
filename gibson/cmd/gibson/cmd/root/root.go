@@ -32,7 +32,7 @@ development lifecycle.
 Subcommands:
   login      authenticate the CLI against the platform (device flow)
   logout     end the CLI session and remove stored credentials
-  init       initialise a Gibson workspace (.gibson/workspace.yaml)
+  init       initialize a Gibson workspace (.gibson/workspace.yaml)
   component  scaffold, validate, register, run components (agent | tool | plugin)
   connector  enable and manage tenant connectors (catalog | enable | list | disable)
   docs       emit machine-readable docs (JSON Schemas, etc.)
