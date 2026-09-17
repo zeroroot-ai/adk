@@ -29,4 +29,4 @@ permissions:
 jobs:
   policy-guards:
     name: policy-guards
-    uses: zeroroot-ai/.github/.github/workflows/vault-auth-method-deny-list.yml@f760edb01410e83c4e262218b80f64d939fe80f3 # main, 2026-09-07: .github#22 go toolchain guard
+    uses: zeroroot-ai/.github/.github/workflows/vault-auth-method-deny-list.yml@26202a5181acc259188b0a21b0fc2e75a9f1dac3 # v0.4.1
