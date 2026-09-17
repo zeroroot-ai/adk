@@ -39,7 +39,7 @@ gibson inspect
 
 Auto-detects the runtime credential, calls `IdentityService.WhoAmI`, and
 prints effective component grants. Tools usually need `can_execute` on
-whatever components the agent calling them is authorised for; the
+whatever components the agent calling them is authorized for; the
 dashboard's "Register Tool" flow seeds that automatically when
 `component_grants` is supplied.
 

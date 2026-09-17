@@ -54,7 +54,7 @@ func (t *{{.GoName}}Tool) OntologyExtension() graphrag.OntologyExtension {
 func (t *{{.GoName}}Tool) ExecuteProto(ctx context.Context, in proto.Message) (proto.Message, error) {
 	_ = in.(*pb.{{.GoName}}Request) // type-assert; replace with real fields
 
-	// TODO: implement the tool's real behaviour and populate Discovery
+	// TODO: implement the tool's real behavior and populate Discovery
 	// with whatever Hosts / Ports / Services / etc. it learned.
 
 	return &pb.{{.GoName}}Response{

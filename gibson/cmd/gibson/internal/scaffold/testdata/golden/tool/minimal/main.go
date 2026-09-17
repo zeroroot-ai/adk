@@ -54,7 +54,7 @@ func (t *DemoToolTool) OntologyExtension() graphrag.OntologyExtension {
 func (t *DemoToolTool) ExecuteProto(ctx context.Context, in proto.Message) (proto.Message, error) {
 	_ = in.(*pb.DemoToolRequest) // type-assert; replace with real fields
 
-	// TODO: implement the tool's real behaviour and populate Discovery
+	// TODO: implement the tool's real behavior and populate Discovery
 	// with whatever Hosts / Ports / Services / etc. it learned.
 
 	return &pb.DemoToolResponse{
