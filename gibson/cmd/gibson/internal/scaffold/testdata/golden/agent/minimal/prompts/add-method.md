@@ -1,4 +1,4 @@
-# Adding behaviour to demo-agent
+# Adding behavior to demo-agent
 
 This agent's reasoning lives in the `execute` function in `main.go`.
 Most "add a feature" requests reduce to: extend `execute` with another
