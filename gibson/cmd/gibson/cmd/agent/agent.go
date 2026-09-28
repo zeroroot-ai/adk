@@ -49,7 +49,11 @@ Subcommands:
 // point used by every tenant-scoped command group; the daemon resolves
 // the caller's tenant from the bearer token (ADR-0093 decision 4).
 func session(ctx context.Context, gibsonURL string) (*grpc.ClientConn, error) {
-	return deviceauth.Dial(ctx, gibsonURL)
+	conn, err := deviceauth.Dial(ctx, gibsonURL)
+	if err != nil {
+		return nil, fmt.Errorf("connect to the daemon: %w", err)
+	}
+	return conn, nil
 }
 
 // parsePrincipalKind maps the --kind flag to the proto enum.
