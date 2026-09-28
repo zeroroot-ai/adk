@@ -168,8 +168,9 @@ func joinURL(base, path string) (string, error) {
 
 // Credentials is the on-disk shape of `~/.gibson/auth/credentials`. It
 // holds everything needed to attach auth to subsequent calls and to
-// silently refresh, plus the resolved active tenant. It is mode 0600
-// and lives outside workspace.yaml (which forbids token fields).
+// silently refresh, plus the tenant resolved at login for display. It
+// is mode 0600 and lives outside workspace.yaml (which forbids token
+// fields).
 type Credentials struct {
 	Issuer       string    `json:"issuer"`
 	ClientID     string    `json:"client_id"`
@@ -178,8 +179,12 @@ type Credentials struct {
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token,omitempty"`
 	Expiry       time.Time `json:"expiry"`
-	ActiveTenant string    `json:"active_tenant,omitempty"`
-	GibsonURL    string    `json:"gibson_url"`
+	// ActiveTenant is the tenant id resolved from the caller's Zitadel
+	// org at login (ResolveActiveTenant), kept for display only. It is
+	// never sent to the daemon: ADR-0093 (decision 4) makes tenant scope
+	// a fact of the bearer token, not a client-supplied value.
+	ActiveTenant string `json:"active_tenant,omitempty"`
+	GibsonURL    string `json:"gibson_url"`
 
 	// CACertPath is a PEM file holding a CA to trust in addition to the system
 	// store, for an install that terminates TLS with its own internal CA

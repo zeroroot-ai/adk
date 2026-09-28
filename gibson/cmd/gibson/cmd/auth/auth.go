@@ -134,13 +134,16 @@ override for local or air-gapped setups.`,
 			}
 			fmt.Fprintf(w, "\nLogged in. Session stored at ~/.gibson/auth/credentials.\n")
 
-			// Resolve the active tenant from the caller's FGA memberships
-			// (DaemonService.ListMyMemberships). Best-effort: a multi-tenant
-			// ambiguity or transient daemon error is reported but does not
+			// Resolve the tenant from the caller's FGA membership
+			// (DaemonService.ListMyMemberships), for display only: the
+			// daemon derives the real tenant scope from the bearer token
+			// on every call (ADR-0093 decision 4), so this never changes
+			// what the CLI is authorized to do. Best-effort: a transient
+			// daemon error or a --tenant mismatch is reported but does not
 			// undo a successful login — the token is already saved.
 			resolved, rerr := creds.ResolveActiveTenant(ctx, tenant)
 			if rerr != nil {
-				fmt.Fprintf(w, "\nSigned in, but could not pin an active tenant:\n  %v\nRe-run `gibson login --tenant <id>` once you know which.\n", rerr)
+				fmt.Fprintf(w, "\nSigned in, but could not confirm your tenant:\n  %v\n", rerr)
 				return nil
 			}
 			if resolved != creds.ActiveTenant {
@@ -156,7 +159,8 @@ override for local or air-gapped setups.`,
 	c.Flags().StringVar(&gibsonURL, "gibson-url", "", "Gibson platform URL; falls back to env / workspace.")
 	c.Flags().StringVar(&issuer, "issuer", "", "Override the OIDC issuer (skips platform bootstrap).")
 	c.Flags().StringVar(&clientID, "client-id", "", "Override the CLI OAuth client_id (skips platform bootstrap).")
-	c.Flags().StringVar(&tenant, "tenant", "", "Active tenant slug to pin for this session.")
+	c.Flags().StringVar(&tenant, "tenant", "", "Assert the tenant you expect to sign in as; checked against your "+
+		"account, not selected by this flag.")
 	c.Flags().BoolVar(&noBrowser, "no-browser", false, "Do not attempt to open a browser; just print the URL.")
 	c.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "Overall deadline for the login flow.")
 	return c
