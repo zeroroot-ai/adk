@@ -23,7 +23,6 @@ func submitCmd() *cobra.Command {
 		targetOverride string
 		dryRun         bool
 		gibsonURL      string
-		tenant         string
 		timeout        time.Duration
 		detach         bool
 	)
@@ -47,7 +46,8 @@ route through the dashboard's Server Action path — this command
 is the CLI escape hatch for development and CI.
 
 Auth: the call is made over the authenticated login session
-(bearer token + x-gibson-tenant); there is no plaintext or
+(bearer token only; the daemon resolves your tenant from your
+account, not from this command); there is no plaintext or
 unauthenticated path.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -79,7 +79,7 @@ unauthenticated path.`,
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
 
-			conn, err := deviceauth.Dial(ctx, gibsonURL, tenant)
+			conn, err := deviceauth.Dial(ctx, gibsonURL)
 			if err != nil {
 				return err
 			}
@@ -193,7 +193,6 @@ unauthenticated path.`,
 	c.Flags().StringVar(&targetOverride, "target", "", "Target id to bind the mission to (overrides the definition's target_ref)")
 	c.Flags().BoolVar(&dryRun, "dry-run", false, "Print rendered JSON; do not contact the daemon")
 	c.Flags().StringVar(&gibsonURL, "gibson-url", "", "Override the daemon URL (defaults to the login session).")
-	c.Flags().StringVar(&tenant, "tenant", "", "Override the active tenant id for this call.")
 	c.Flags().DurationVar(&timeout, "timeout", 30*time.Second, "Submit deadline")
 	c.Flags().BoolVar(&detach, "detach", false,
 		"Return once the daemon has started the run and print the mission id; do not wait for the mission to finish")

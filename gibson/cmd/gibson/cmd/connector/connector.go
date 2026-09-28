@@ -7,8 +7,9 @@
 // (ADR-0014 Slice 4). A person enables a connector from the curated catalog
 // and it becomes a running connector the connector-operator reconciles onto
 // ToolHive; the person does not author YAML. Authentication is the human
-// login session set up by `gibson login` (bearer token + x-gibson-tenant);
-// there is no unauthenticated path.
+// login session set up by `gibson login` (bearer token only; the daemon
+// derives the tenant from the token's Zitadel org, ADR-0093); there is
+// no unauthenticated path.
 package connector
 
 import (
@@ -51,11 +52,11 @@ Subcommands:
 
 // session loads the human login session and opens an authenticated
 // connection to the daemon. gibsonURL (when non-empty) overrides the
-// session's stored URL; tenant (when non-empty) overrides the active
-// tenant for this call. It delegates to the shared deviceauth.Dial entry
-// point every tenant-scoped command group uses.
-func session(ctx context.Context, gibsonURL, tenant string) (*grpc.ClientConn, error) {
-	conn, err := deviceauth.Dial(ctx, gibsonURL, tenant)
+// session's stored URL. It delegates to the shared deviceauth.Dial entry
+// point every tenant-scoped command group uses; the daemon resolves the
+// caller's tenant from the bearer token (ADR-0093 decision 4).
+func session(ctx context.Context, gibsonURL string) (*grpc.ClientConn, error) {
+	conn, err := deviceauth.Dial(ctx, gibsonURL)
 	if err != nil {
 		return nil, fmt.Errorf("connect to the daemon: %w", err)
 	}
@@ -65,7 +66,6 @@ func session(ctx context.Context, gibsonURL, tenant string) (*grpc.ClientConn, e
 func catalogCmd() *cobra.Command {
 	var (
 		gibsonURL string
-		tenant    string
 		timeout   time.Duration
 	)
 	c := &cobra.Command{
@@ -79,7 +79,7 @@ by the per-tenant catalog gate. Enable one with ` + "`gibson connector enable <i
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
 
-			conn, err := session(ctx, gibsonURL, tenant)
+			conn, err := session(ctx, gibsonURL)
 			if err != nil {
 				return err
 			}
@@ -102,14 +102,13 @@ by the per-tenant catalog gate. Enable one with ` + "`gibson connector enable <i
 			return nil
 		},
 	}
-	bindDaemonFlags(c, &gibsonURL, &tenant, &timeout)
+	bindDaemonFlags(c, &gibsonURL, &timeout)
 	return c
 }
 
 func enableCmd() *cobra.Command {
 	var (
 		gibsonURL string
-		tenant    string
 		timeout   time.Duration
 	)
 	c := &cobra.Command{
@@ -125,7 +124,7 @@ authorizes it. The enabled connector id and its initial phase are printed.`,
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
 
-			conn, err := session(ctx, gibsonURL, tenant)
+			conn, err := session(ctx, gibsonURL)
 			if err != nil {
 				return err
 			}
@@ -143,14 +142,13 @@ authorizes it. The enabled connector id and its initial phase are printed.`,
 			return nil
 		},
 	}
-	bindDaemonFlags(c, &gibsonURL, &tenant, &timeout)
+	bindDaemonFlags(c, &gibsonURL, &timeout)
 	return c
 }
 
 func listCmd() *cobra.Command {
 	var (
 		gibsonURL string
-		tenant    string
 		timeout   time.Duration
 	)
 	c := &cobra.Command{
@@ -164,7 +162,7 @@ the count of discovered tools, and the last error (if any).`,
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
 
-			conn, err := session(ctx, gibsonURL, tenant)
+			conn, err := session(ctx, gibsonURL)
 			if err != nil {
 				return err
 			}
@@ -189,14 +187,13 @@ the count of discovered tools, and the last error (if any).`,
 			return nil
 		},
 	}
-	bindDaemonFlags(c, &gibsonURL, &tenant, &timeout)
+	bindDaemonFlags(c, &gibsonURL, &timeout)
 	return c
 }
 
 func disableCmd() *cobra.Command {
 	var (
 		gibsonURL string
-		tenant    string
 		timeout   time.Duration
 		yes       bool
 	)
@@ -224,7 +221,7 @@ asks you to confirm unless you pass --yes.`,
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
 
-			conn, err := session(ctx, gibsonURL, tenant)
+			conn, err := session(ctx, gibsonURL)
 			if err != nil {
 				return err
 			}
@@ -239,7 +236,7 @@ asks you to confirm unless you pass --yes.`,
 			return nil
 		},
 	}
-	bindDaemonFlags(c, &gibsonURL, &tenant, &timeout)
+	bindDaemonFlags(c, &gibsonURL, &timeout)
 	c.Flags().BoolVar(&yes, "yes", false, "Do not ask to confirm the disable")
 	return c
 }
@@ -263,8 +260,7 @@ func confirm(cmd *cobra.Command, connectorID string) (bool, error) {
 // bindDaemonFlags registers the daemon-connection flags shared by every
 // connector subcommand. They mirror the other tenant-scoped command groups so
 // GIBSON_URL / login-session / CA handling stay identical across the CLI.
-func bindDaemonFlags(c *cobra.Command, gibsonURL, tenant *string, timeout *time.Duration) {
+func bindDaemonFlags(c *cobra.Command, gibsonURL *string, timeout *time.Duration) {
 	c.Flags().StringVar(gibsonURL, "gibson-url", "", "Override the daemon URL (defaults to the login session).")
-	c.Flags().StringVar(tenant, "tenant", "", "Override the active tenant id for this call.")
 	c.Flags().DurationVar(timeout, "timeout", 30*time.Second, "RPC deadline")
 }

@@ -8,8 +8,9 @@
 //
 // The commands call the customer-facing DaemonService target RPCs
 // (CreateTarget / GetTarget / ListTargets / UpdateTarget / DeleteTarget) over
-// the authenticated login session established by `gibson login` (bearer token
-// + x-gibson-tenant). The daemon URL comes from that session (override with
+// the authenticated login session established by `gibson login` (bearer
+// token only; the daemon derives the tenant from the token's Zitadel org,
+// ADR-0093). The daemon URL comes from that session (override with
 // --gibson-url); there is no plaintext/unauthenticated path.
 package target
 
@@ -57,21 +58,20 @@ Subcommands:
 // connFlags are the daemon-dial flags shared by every subcommand.
 type connFlags struct {
 	gibsonURL string
-	tenant    string
 	timeout   time.Duration
 }
 
 func (f *connFlags) bind(c *cobra.Command) {
 	c.Flags().StringVar(&f.gibsonURL, "gibson-url", "", "Override the daemon URL (defaults to the login session).")
-	c.Flags().StringVar(&f.tenant, "tenant", "", "Override the active tenant id for this call.")
 	c.Flags().DurationVar(&f.timeout, "timeout", 30*time.Second, "Request deadline")
 }
 
 // dial opens a DaemonService client over the authenticated login session.
-// The returned cleanup closes the connection.
+// The returned cleanup closes the connection. The daemon resolves the
+// caller's tenant from the bearer token (ADR-0093 decision 4).
 func (f *connFlags) dial(ctx context.Context) (daemonv1.DaemonServiceClient, func(), context.Context, context.CancelFunc, error) {
 	cctx, cancel := context.WithTimeout(ctx, f.timeout)
-	conn, err := deviceauth.Dial(cctx, f.gibsonURL, f.tenant)
+	conn, err := deviceauth.Dial(cctx, f.gibsonURL)
 	if err != nil {
 		cancel()
 		return nil, nil, nil, nil, err

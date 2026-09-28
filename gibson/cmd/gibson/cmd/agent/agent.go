@@ -5,8 +5,9 @@
 // revoke. All commands call AgentIdentityService on the Gibson daemon
 // (through Envoy) to manage machine identities for agents, tools, and
 // plugins. Authentication is the human login session established by
-// `gibson login` (bearer token + x-gibson-tenant); there is no
-// plaintext/unauthenticated path.
+// `gibson login` (bearer token only; the daemon derives the tenant from
+// the token's Zitadel org, ADR-0093); there is no plaintext/
+// unauthenticated path.
 package agent
 
 import (
@@ -44,11 +45,11 @@ Subcommands:
 
 // session loads the human login session and opens an authenticated
 // connection to the daemon. gibsonURL (when non-empty) overrides the
-// session's stored URL; tenant (when non-empty) overrides the active
-// tenant for this call. It delegates to the shared deviceauth.Dial entry
-// point used by every tenant-scoped command group.
-func session(ctx context.Context, gibsonURL, tenant string) (*grpc.ClientConn, error) {
-	return deviceauth.Dial(ctx, gibsonURL, tenant)
+// session's stored URL. It delegates to the shared deviceauth.Dial entry
+// point used by every tenant-scoped command group; the daemon resolves
+// the caller's tenant from the bearer token (ADR-0093 decision 4).
+func session(ctx context.Context, gibsonURL string) (*grpc.ClientConn, error) {
+	return deviceauth.Dial(ctx, gibsonURL)
 }
 
 // parsePrincipalKind maps the --kind flag to the proto enum.
@@ -69,7 +70,6 @@ func parsePrincipalKind(s string) (agentidentityv1.PrincipalKind, error) {
 func agentEnrollCmd() *cobra.Command {
 	var (
 		gibsonURL   string
-		tenant      string
 		timeout     time.Duration
 		name        string
 		kind        string
@@ -94,7 +94,7 @@ handshake (ADR-0045). The same flow serves every component kind.`,
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
 
-			conn, err := session(ctx, gibsonURL, tenant)
+			conn, err := session(ctx, gibsonURL)
 			if err != nil {
 				return err
 			}
@@ -129,7 +129,6 @@ handshake (ADR-0045). The same flow serves every component kind.`,
 		},
 	}
 	c.Flags().StringVar(&gibsonURL, "gibson-url", "", "Override the daemon URL (defaults to the login session).")
-	c.Flags().StringVar(&tenant, "tenant", "", "Override the active tenant id for this call.")
 	c.Flags().DurationVar(&timeout, "timeout", 30*time.Second, "RPC deadline")
 	c.Flags().StringVar(&name, "name", "", "Identity name (required)")
 	c.Flags().StringVar(&kind, "kind", "agent", "Component kind: agent | tool | plugin")
@@ -144,7 +143,6 @@ handshake (ADR-0045). The same flow serves every component kind.`,
 func agentListCmd() *cobra.Command {
 	var (
 		gibsonURL string
-		tenant    string
 		timeout   time.Duration
 		kind      string
 	)
@@ -156,7 +154,7 @@ func agentListCmd() *cobra.Command {
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
 
-			conn, err := session(ctx, gibsonURL, tenant)
+			conn, err := session(ctx, gibsonURL)
 			if err != nil {
 				return err
 			}
@@ -193,7 +191,6 @@ func agentListCmd() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&gibsonURL, "gibson-url", "", "Override the daemon URL (defaults to the login session).")
-	c.Flags().StringVar(&tenant, "tenant", "", "Override the active tenant id for this call.")
 	c.Flags().DurationVar(&timeout, "timeout", 30*time.Second, "RPC deadline")
 	c.Flags().StringVar(&kind, "kind", "", "Filter by kind: agent | tool | plugin (default: all)")
 	return c
@@ -202,7 +199,6 @@ func agentListCmd() *cobra.Command {
 func agentRevokeCmd() *cobra.Command {
 	var (
 		gibsonURL string
-		tenant    string
 		timeout   time.Duration
 	)
 	c := &cobra.Command{
@@ -216,7 +212,7 @@ accepted by the daemon. This action is irreversible.`,
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
 
-			conn, err := session(ctx, gibsonURL, tenant)
+			conn, err := session(ctx, gibsonURL)
 			if err != nil {
 				return err
 			}
@@ -232,7 +228,6 @@ accepted by the daemon. This action is irreversible.`,
 		},
 	}
 	c.Flags().StringVar(&gibsonURL, "gibson-url", "", "Override the daemon URL (defaults to the login session).")
-	c.Flags().StringVar(&tenant, "tenant", "", "Override the active tenant id for this call.")
 	c.Flags().DurationVar(&timeout, "timeout", 30*time.Second, "RPC deadline")
 	return c
 }
