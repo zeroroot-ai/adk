@@ -170,6 +170,8 @@ jobs:
     name: lint (new code)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      GOLANGCI_LINT_VERSION: v2.6.2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -182,17 +184,34 @@ jobs:
           cache: true
           cache-dependency-path: gibson/go.sum
 
+      # golangci-lint is built from source with the runner's pinned Go
+      # (from setup-go). The prebuilt release binary is compiled with an
+      # older Go and refuses a config targeting a newer one ("Go language
+      # version used to build golangci-lint is lower than the targeted Go
+      # version"), so it must be compiled here. That compile ran on EVERY
+      # job and failed twice on 2026-09-28 with no output (runs 36422076889
+      # and 36424344608), on PRs that changed no Go. Cache the built binary,
+      # keyed on the linter version and go.mod's `go` directive, the two
+      # inputs that decide what gets built, so the compile runs only when
+      # one of them moves.
+      - name: Restore the golangci-lint binary
+        id: golangci-bin
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/bin/golangci-lint
+          key: golangci-lint-${{ runner.os }}-${{ env.GOLANGCI_LINT_VERSION }}-${{ hashFiles('gibson/go.mod') }}
+
+      - name: Build golangci-lint with the pinned Go
+        if: steps.golangci-bin.outputs.cache-hit != 'true'
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${{ env.GOLANGCI_LINT_VERSION }}
+
       - name: golangci-lint (new issues only)
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
-          version: v2.6.2
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: gibson
-          # Build golangci-lint from source with the runner's pinned Go
-          # (1.26.6 from setup-go). The prebuilt release binary is compiled
-          # with go1.25 and refuses a config targeting go 1.26.6
-          # ("Go language version used to build golangci-lint is lower than
-          # the targeted Go version"), so we must compile it ourselves.
-          install-mode: goinstall
+          # The binary comes from the cache or the build step above.
+          install-mode: none
           # Gate only the diff vs the PR base so new code is held to the
           # full linter set without red-walling on the backlog (adk#160).
           args: --new-from-rev=${{ github.event.pull_request.base.sha || 'HEAD~1' }} --timeout=8m
