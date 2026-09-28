@@ -143,7 +143,7 @@ override for local or air-gapped setups.`,
 			// undo a successful login — the token is already saved.
 			resolved, rerr := creds.ResolveActiveTenant(ctx, tenant)
 			if rerr != nil {
-				fmt.Fprintf(w, "\nSigned in, but could not confirm your tenant:\n  %v\n", rerr)
+				_, _ = fmt.Fprintf(w, "\nSigned in, but could not confirm your tenant:\n  %v\n", rerr)
 				return nil
 			}
 			if resolved != creds.ActiveTenant {
