@@ -84,8 +84,8 @@ github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWD
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/zeroroot-ai/ast-checks v0.3.1 h1:CsRC/tSUwdcb9tOwHvu68QgFybBi+T//wJlBDkEg5Fw=
 github.com/zeroroot-ai/ast-checks v0.3.1/go.mod h1:XO8hx6xKXUh9lHfNJA32cptXsHcwT1JNbrUH4NZMwdM=
-github.com/zeroroot-ai/sdk v0.182.0 h1:KUSIqc4muIXb1tdWKtc2SIgGDr4vAp6FeBBjyUyyAVY=
-github.com/zeroroot-ai/sdk v0.182.0/go.mod h1:w8gs8qpQ558FFO9KXiN+axutjVlW3MDd09a96iMG1Zo=
+github.com/zeroroot-ai/sdk v0.183.0 h1:OFSuaOL8vJoHpp0R03YMMTmhBwvvwZC7ZATESKQK/5Q=
+github.com/zeroroot-ai/sdk v0.183.0/go.mod h1:w8gs8qpQ558FFO9KXiN+axutjVlW3MDd09a96iMG1Zo=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/otel v1.46.0 h1:FHt5/CDyVxi/8IM1CH7VE/rRgq3kLHa2mSTVMO8AWyc=
