@@ -31,6 +31,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -115,8 +116,16 @@ func (c *Client) Discover(ctx context.Context, issuer string) (oauth2.Endpoint, 
 		AuthURL:       d.AuthorizationEndpoint,
 		TokenURL:      d.TokenEndpoint,
 		DeviceAuthURL: d.DeviceAuthorizationEndpoint,
+		AuthStyle:     PublicClientAuthStyle,
 	}, nil
 }
+
+// PublicClientAuthStyle sends client_id in the form body, as RFC 8628
+// section 3.4 describes for a public client. The oauth2 default probes
+// instead: after each failed token request it sends the same request
+// again with the other auth style. Every authorization_pending answer
+// then costs two requests against the edge's per-client login quota.
+const PublicClientAuthStyle = oauth2.AuthStyleInParams
 
 // Config assembles the oauth2.Config for the device flow from a
 // bootstrap + discovered endpoint.
@@ -126,6 +135,51 @@ func Config(b *Bootstrap, endpoint oauth2.Endpoint) *oauth2.Config {
 		Endpoint: endpoint,
 		Scopes:   b.Scopes,
 	}
+}
+
+// rateLimitFallbackWait is the pause after a 429 that names no reset time.
+const rateLimitFallbackWait = 10 * time.Second
+
+// PollToken polls the token endpoint until the user approves the device
+// request. It wraps oauth2's DeviceAccessToken, which treats any HTTP
+// 429 as fatal because a 429 carries no OAuth error code. The platform
+// edge counts the poll against a per-client login quota, so a 429 is a
+// normal signal here. PollToken waits until the quota window resets and
+// then polls again. The context and the device code expiry bound the
+// total wait.
+func PollToken(ctx context.Context, cfg *oauth2.Config, da *oauth2.DeviceAuthResponse) (*oauth2.Token, error) {
+	for {
+		tok, err := cfg.DeviceAccessToken(ctx, da)
+		wait, limited := rateLimitWait(err)
+		if !limited {
+			return tok, err
+		}
+		if !da.Expiry.IsZero() && time.Now().Add(wait).After(da.Expiry) {
+			return nil, fmt.Errorf("device code expired while rate limited: %w", err)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(wait):
+		}
+	}
+}
+
+// rateLimitWait reports whether err is an HTTP 429 from the token
+// endpoint, and how long to wait before the next poll. It reads
+// Retry-After first, then the edge's X-RateLimit-Reset. Both carry
+// seconds.
+func rateLimitWait(err error) (time.Duration, bool) {
+	var re *oauth2.RetrieveError
+	if !errors.As(err, &re) || re.Response == nil || re.Response.StatusCode != http.StatusTooManyRequests {
+		return 0, false
+	}
+	for _, h := range []string{"Retry-After", "X-RateLimit-Reset"} {
+		if n, perr := strconv.Atoi(strings.TrimSpace(re.Response.Header.Get(h))); perr == nil && n >= 0 {
+			return time.Duration(n) * time.Second, true
+		}
+	}
+	return rateLimitFallbackWait, true
 }
 
 func (c *Client) getJSON(ctx context.Context, endpoint string, out any) error {

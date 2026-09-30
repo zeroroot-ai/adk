@@ -24,7 +24,7 @@ import (
 func (cr *Credentials) TokenSource(ctx context.Context) oauth2.TokenSource {
 	cfg := &oauth2.Config{
 		ClientID: cr.ClientID,
-		Endpoint: oauth2.Endpoint{TokenURL: cr.TokenURL},
+		Endpoint: oauth2.Endpoint{TokenURL: cr.TokenURL, AuthStyle: PublicClientAuthStyle},
 		Scopes:   cr.Scopes,
 	}
 	// The silent refresh hits the issuer's token endpoint, which sits behind

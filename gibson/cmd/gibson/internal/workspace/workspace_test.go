@@ -103,7 +103,7 @@ func TestResolve_LocalWorkspace(t *testing.T) {
 	assert.Equal(t, "https://from-local", res.GibsonURL)
 }
 
-func TestResolve_NoSource(t *testing.T) {
+func TestResolve_DefaultsToHostedPlatform(t *testing.T) {
 	t.Setenv("GIBSON_URL", "")
 	t.Setenv("HOME", t.TempDir()) // no global workspace
 
@@ -111,7 +111,8 @@ func TestResolve_NoSource(t *testing.T) {
 	require.NoError(t, os.Chdir(t.TempDir()))
 	defer os.Chdir(wd) //nolint:errcheck // restoring cwd in test cleanup; error not actionable
 
-	_, err := workspace.Resolve("")
-	require.Error(t, err)
-	assert.ErrorIs(t, err, workspace.ErrNoGibsonURL)
+	res, err := workspace.Resolve("")
+	require.NoError(t, err)
+	assert.Equal(t, "default", res.Source)
+	assert.Equal(t, "https://api.zeroroot.ai", res.GibsonURL)
 }

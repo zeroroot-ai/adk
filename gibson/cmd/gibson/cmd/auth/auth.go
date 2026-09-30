@@ -42,7 +42,9 @@ end it.
 
 The CLI learns its issuer + public client_id from the platform
 (GET {GIBSON_URL}/.well-known/gibson-login); pass --issuer/--client-id to
-override for local or air-gapped setups.`,
+override for local or air-gapped setups. GIBSON_URL defaults to
+https://api.zeroroot.ai; --gibson-url, the GIBSON_URL env var, or a
+workspace file (gibson init) override it.`,
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -109,7 +111,7 @@ override for local or air-gapped setups.`,
 			}
 			fmt.Fprintln(w, "Waiting for approval...")
 
-			tok, err := cfg.DeviceAccessToken(ctx, da)
+			tok, err := deviceauth.PollToken(ctx, cfg, da)
 			if err != nil {
 				return fmt.Errorf("login: %w", err)
 			}
@@ -156,7 +158,8 @@ override for local or air-gapped setups.`,
 			return nil
 		},
 	}
-	c.Flags().StringVar(&gibsonURL, "gibson-url", "", "Gibson platform URL; falls back to env / workspace.")
+	c.Flags().StringVar(&gibsonURL, "gibson-url", "", "Gibson platform URL; falls back to GIBSON_URL, then the workspace, then "+
+		workspace.DefaultGibsonURL+".")
 	c.Flags().StringVar(&issuer, "issuer", "", "Override the OIDC issuer (skips platform bootstrap).")
 	c.Flags().StringVar(&clientID, "client-id", "", "Override the CLI OAuth client_id (skips platform bootstrap).")
 	c.Flags().StringVar(&tenant, "tenant", "", "Assert the tenant you expect to sign in as; checked against your "+

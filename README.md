@@ -33,8 +33,9 @@ Requires Go 1.24+. The binary is named `gibson`.
 ## What an AI-driven session looks like
 
 ```sh
-# 1. One-time per workspace: pin GIBSON_URL.
-gibson init --gibson-url https://api.zeroroot.ai
+# 1. Sign in. The CLI uses https://api.zeroroot.ai unless --gibson-url,
+#    GIBSON_URL, or a workspace file (gibson init) names another install.
+gibson login
 
 # 2. Scaffold the component you want the AI to build.
 gibson component init prom-scanner --kind tool
