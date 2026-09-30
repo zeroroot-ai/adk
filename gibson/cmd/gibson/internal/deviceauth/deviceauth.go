@@ -152,14 +152,17 @@ func PollToken(ctx context.Context, cfg *oauth2.Config, da *oauth2.DeviceAuthRes
 		tok, err := cfg.DeviceAccessToken(ctx, da)
 		wait, limited := rateLimitWait(err)
 		if !limited {
-			return tok, err
+			if err != nil {
+				return nil, fmt.Errorf("deviceauth: poll token: %w", err)
+			}
+			return tok, nil
 		}
 		if !da.Expiry.IsZero() && time.Now().Add(wait).After(da.Expiry) {
 			return nil, fmt.Errorf("device code expired while rate limited: %w", err)
 		}
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, fmt.Errorf("deviceauth: poll token: %w", ctx.Err())
 		case <-time.After(wait):
 		}
 	}
