@@ -28,9 +28,9 @@ type Workspace struct {
 	Comment        string `yaml:"comment,omitempty"`
 }
 
-// ErrNoGibsonURL is returned by Resolve when no source yields a
-// non-empty gibson_url.
-var ErrNoGibsonURL = errors.New("workspace: GIBSON_URL is required (run gibson init or set GIBSON_URL)")
+// DefaultGibsonURL is the hosted platform. Resolve returns it when no
+// flag, env var, or workspace file names another install.
+const DefaultGibsonURL = "https://api.zeroroot.ai"
 
 // ErrCredentialField is returned when a workspace.yaml contains a
 // field name that hints at a credential.
@@ -40,12 +40,12 @@ var ErrCredentialField = errors.New("workspace: credentials must not be stored i
 // from, so subcommands can include a friendly hint in error messages.
 type Resolution struct {
 	GibsonURL string
-	Source    string // "flag" | "env" | "local-workspace" | "global-workspace"
+	Source    string // "flag" | "env" | "local-workspace" | "global-workspace" | "default"
 }
 
 // Resolve walks the precedence chain (flag → env → local workspace
-// (parent walk) → global workspace) and returns the first
-// non-empty gibson_url, plus the source label.
+// (parent walk) → global workspace → DefaultGibsonURL) and returns the
+// first non-empty gibson_url, plus the source label.
 //
 // flagURL is the explicit --gibson-url value from the cobra layer; pass
 // "" if not provided.
@@ -67,7 +67,7 @@ func Resolve(flagURL string) (*Resolution, error) {
 	if w, err := loadGlobal(); err == nil && w != nil && w.GibsonURL != "" {
 		return &Resolution{GibsonURL: w.GibsonURL, Source: "global-workspace"}, nil
 	}
-	return nil, ErrNoGibsonURL
+	return &Resolution{GibsonURL: DefaultGibsonURL, Source: "default"}, nil
 }
 
 // LocalPath returns the conventional local workspace path

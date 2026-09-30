@@ -83,7 +83,8 @@ Examples:
 
 	cmd.Flags().StringVarP(&dir, "dir", "d", ".", "component directory (containing component.yaml)")
 	cmd.Flags().StringVar(&kindFlag, "kind", "", "override kind (agent | tool | plugin); auto-detected from component.yaml when unset")
-	cmd.Flags().StringVar(&gibsonURL, "gibson-url", "", "Gibson platform URL; falls back to env / workspace.")
+	cmd.Flags().StringVar(&gibsonURL, "gibson-url", "", "Gibson platform URL; falls back to GIBSON_URL, then the workspace, then "+
+		workspace.DefaultGibsonURL+".")
 	cmd.Flags().StringVar(&nameFlag, "name", "", "optional install name (allows multiple credentials per kind on one host)")
 	cmd.Flags().StringVar(&token, "token", "", `bootstrap token. Use "-" to read from stdin or set GIBSON_BOOTSTRAP_TOKEN.`)
 	return cmd
