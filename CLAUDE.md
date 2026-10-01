@@ -34,7 +34,7 @@ make lint-new         # golangci-lint on new code only; what CI gates
 
 ## Gotchas
 
-- **`make lint` is the full backlog, `make lint-new` is the gate.** `lint` surfaces a large pre-existing backlog (adk#160) and is deliberately not in `check`. CI gates new code with `lint-new`. Run `golangci-lint` locally only under the workspace memory cap, and never while a kind cluster or a race build is running.
+- **`make lint` is the full backlog, `make lint-new` is the gate.** `lint` surfaces a large pre-existing backlog and is deliberately not in `check`, because turning it on today would red-wall main. CI gates new code with `lint-new`. Run `golangci-lint` locally only under the workspace memory cap, and never while a kind cluster or a race build is running.
 - **The README is checked against the binary.** `make readme-matches-cli` fails when the README names a command the cobra tree does not define, or when its Go floor disagrees with `gibson/go.mod`. The floor lives between `<!-- go-floor -->` markers, which is the one literal; do not add a second. It documented `mission draft` and `provider`, two command groups that do not exist, until adk#67.
 - **A mission template must name a target.** `mission new` resolves one and writes it in, so the scaffold submits as written. A new template needs exactly one `target_ref:` line or the test suite fails (adk#68).
 - **Two template surfaces, one name.** `templates/<name>/template.cue` is documentation a reader fills in; `builtinTemplates` in `new.go` is what the CLI emits. Fix the one the reproduction actually used.
