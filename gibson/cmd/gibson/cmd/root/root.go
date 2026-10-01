@@ -15,6 +15,7 @@ import (
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/docs"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/inspect"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/mission"
+	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/secret"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/target"
 	wscmd "github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/workspace"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/deviceauth"
@@ -62,6 +63,7 @@ func init() {
 	rootCmd.AddCommand(docs.Command())
 	rootCmd.AddCommand(inspect.Command())
 	rootCmd.AddCommand(mission.Command())
+	rootCmd.AddCommand(secret.Command())
 	rootCmd.AddCommand(target.Command())
 	rootCmd.AddCommand(agent.Command())
 }
