@@ -93,7 +93,7 @@ bootstrap:
 	@echo "bootstrap: installing pinned dev toolchain"
 	go install cuelang.org/go/cmd/cue@v0.16.1
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
-	go install golang.org/x/tools/cmd/deadcode@latest
+	$(MAKE) deadcode-install
 	@echo "bootstrap: ok"
 
 # build: org Makefile contract target (gibson#171 slice 1.4 /
@@ -134,19 +134,61 @@ lint-new:
 	}
 	@(cd gibson && golangci-lint run --new-from-rev=$(BASE_REF) ./...)
 
+# DEADCODE_VERSION is the ONE pin. bootstrap and CI both install through
+# deadcode-install, so a developer's gate and CI's gate cannot be different
+# tools. bootstrap used to install @latest while CI pinned a version, which is
+# the shape where a gate passes for one of them and not the other.
+#
+# It must be a release whose VENDORED x/tools can analyse this module's language
+# version. The build toolchain does NOT decide that — deadcode carries its own
+# go/packages and go/types, so building an old release with go1.27.1 changes
+# nothing. v0.49.0 against the Go 1.27 floor reports, on stderr, exit 2:
+#
+#   package requires newer Go version go1.27 (application built with go1.25)
+#   deadcode: packages contain errors
+#
+# v0.50.0 is the first release that analyses it. Same class as golangci-lint
+# below v2.14.0 and govulncheck at v1.1.4: the vendored x/tools is the lever.
+DEADCODE_VERSION := v0.50.0
+
+.PHONY: deadcode-install
+deadcode-install:
+	go install golang.org/x/tools/cmd/deadcode@$(DEADCODE_VERSION)
+
 # deadcode: BLOCKING whole-program reachability gate. Any function
 # unreachable from the gibson CLI main fails CI. The pre-existing backlog
 # (adk#159) is cleared, so there is no allowlist — the gate is fully
 # blocking for all dead code. Quality bar §3.
 #
-# deadcode must be built with the pinned toolchain (go 1.27.1) so it can
-# analyze source at that language version — `go run` pins it via go.mod under GOTOOLCHAIN.
+# THE EXIT CODE IS CHECKED, and that is the point. This gate used to capture
+# stdout only and branch on whether it was empty:
+#
+#   out="$$(cd gibson && deadcode ./...)"; if [ -n "$$out" ]; then ... exit 1
+#
+# deadcode writes an analysis failure to STDERR and exits non-zero, leaving
+# stdout empty — so a run that analysed nothing at all printed "deadcode: ok"
+# and passed. That is exactly what v0.49.0 did against the Go 1.27 floor, and
+# the gate reported success for it in 25 seconds.
+#
+# The two failures get different messages because they have different remedies:
+# dead code is deleted, a broken analysis means the tool cannot read the source
+# and the pin has to move.
 deadcode:
 	@command -v deadcode >/dev/null 2>&1 || { \
 		echo "ERROR: deadcode not on PATH — run 'make bootstrap'." >&2; \
 		exit 1; \
 	}
-	@out="$$(cd gibson && deadcode ./...)"; \
+	@err="$$(mktemp)"; \
+	out="$$(cd gibson && deadcode ./... 2>"$$err")"; rc=$$?; \
+	if [ "$$rc" -ne 0 ]; then \
+		echo "ERROR: deadcode could not analyse the module (exit $$rc)." >&2; \
+		echo "The gate found NO dead code because it read no code. Do not read this as a pass." >&2; \
+		echo "If the error mentions a newer Go version, raise DEADCODE_VERSION in this Makefile." >&2; \
+		cat "$$err" >&2; \
+		rm -f "$$err"; \
+		exit 1; \
+	fi; \
+	rm -f "$$err"; \
 	if [ -n "$$out" ]; then \
 		echo "ERROR: dead (unreachable) code found:" >&2; \
 		printf '%s\n' "$$out" >&2; \
