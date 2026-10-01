@@ -171,7 +171,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      GOLANGCI_LINT_VERSION: v2.6.2
+      GOLANGCI_LINT_VERSION: v2.14.0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -188,7 +188,15 @@ jobs:
       # (from setup-go). The prebuilt release binary is compiled with an
       # older Go and refuses a config targeting a newer one ("Go language
       # version used to build golangci-lint is lower than the targeted Go
-      # version"), so it must be compiled here. That compile ran on EVERY
+      # version"), so it must be compiled here.
+      #
+      # Compiling from source does NOT fix the other version problem, and it
+      # is worth being explicit so nobody re-derives it: golangci-lint ships
+      # its own importer (vendored x/tools), so whether it can read a
+      # module's export data is set by GOLANGCI_LINT_VERSION, not by the Go
+      # that compiles it. v2.4.0 rebuilt with go1.27.1 still fails with
+      # "export data version 4 is greater than maximum supported version 2".
+      # Keep the version at or above the Go floor in gibson/go.mod. That compile ran on EVERY
       # job and failed twice on 2026-09-28 with no output (runs 36422076889
       # and 36424344608), on PRs that changed no Go. Cache the built binary,
       # keyed on the linter version and go.mod's `go` directive, the two

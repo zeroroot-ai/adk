@@ -1,5 +1,5 @@
 # Shared toolchain pin (asdf / mise). One Go version for the whole repo.
-# Must match gibson/go.mod `go 1.26.8`. The org guard (check-go-toolchain.sh,
+# Must match gibson/go.mod `go 1.27.1`. The org guard (check-go-toolchain.sh,
 # .github#22) fails a PR whose scaffold Dockerfiles name another Go, so bump
 # this file, go.mod and the scaffold templates together.
 # Quality bar: docs/architecture/open-core/RESTRUCTURE-QUALITY-BARS.md §1.
@@ -7,4 +7,4 @@
 # cue is NOT pinned here: it is installed via `go install
 # cuelang.org/go/cmd/cue@v0.16.1` (see the Makefile `ensure-cue`/`bootstrap`
 # targets), not via an asdf/mise plugin.
-golang 1.26.8
+golang 1.27.1

@@ -1,5 +1,5 @@
 # Stage 1: build — compiles the plugin binary with CGO disabled.
-FROM golang:1.26.8-alpine AS builder
+FROM golang:1.27.1-alpine AS builder
 # GOTOOLCHAIN=local: the builder must carry the Go that go.mod names, so a
 # mismatch fails the build instead of downloading a toolchain.
 ARG GOTOOLCHAIN=local

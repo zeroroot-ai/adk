@@ -87,12 +87,12 @@ generate: regen-cue
 # bootstrap: org Makefile contract target. "Just works" one-command dev
 # setup — installs the build/lint/dead-code toolchain at the pinned
 # versions so `make build|test|check` succeed on a clean checkout. The Go
-# toolchain itself is pinned by gibson/go.mod (`go 1.26.8`) + .tool-versions.
+# toolchain itself is pinned by gibson/go.mod (`go 1.27.1`) + .tool-versions.
 # Quality bar: docs/architecture/open-core/RESTRUCTURE-QUALITY-BARS.md §1.
 bootstrap:
 	@echo "bootstrap: installing pinned dev toolchain"
 	go install cuelang.org/go/cmd/cue@v0.16.1
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 	go install golang.org/x/tools/cmd/deadcode@latest
 	@echo "bootstrap: ok"
 
@@ -139,8 +139,8 @@ lint-new:
 # (adk#159) is cleared, so there is no allowlist — the gate is fully
 # blocking for all dead code. Quality bar §3.
 #
-# deadcode must be built with the pinned toolchain (go 1.26.8) so it can
-# analyze go1.26 source — `go run` pins it via go.mod under GOTOOLCHAIN.
+# deadcode must be built with the pinned toolchain (go 1.27.1) so it can
+# analyze source at that language version — `go run` pins it via go.mod under GOTOOLCHAIN.
 deadcode:
 	@command -v deadcode >/dev/null 2>&1 || { \
 		echo "ERROR: deadcode not on PATH — run 'make bootstrap'." >&2; \
@@ -158,7 +158,7 @@ deadcode:
 # (`gibson`) distributed as a Go binary, NOT as a container image — there
 # is no first-party image to build or mirror-pin here. (The container
 # bases under gibson/.../scaffold are customer SCAFFOLD output, pinned to
-# the public golang:1.26.8-alpine, the Go that gibson/go.mod names, and
+# the public golang:1.27.1-alpine, the Go that gibson/go.mod names, and
 # the org toolchain guard keeps them equal.) Target present for uniform-contract parity; intentional no-op.
 image:
 	@echo "image: adk ships a Go-binary CLI, no first-party container image (no-op)"
