@@ -248,8 +248,18 @@ jobs:
           cache: true
           cache-dependency-path: adk/gibson/go.sum
 
-      - name: Install deadcode (pinned toolchain)
-        run: go install golang.org/x/tools/cmd/deadcode@v0.49.0
+      # Installed through the Makefile so CI and `make bootstrap` cannot run
+      # different versions. DEADCODE_VERSION in the Makefile is the one pin.
+      - name: Install deadcode (pinned via the Makefile)
+        run: make deadcode-install
+
+      # Mutation-test the gate BEFORE trusting it. The gate used to report a
+      # clean run when deadcode had analysed nothing, so the fixture's required
+      # red cases are the ways it must fail — including an analysis that errors
+      # with empty stdout, which is indistinguishable from "no dead code" to a
+      # gate that reads stdout only.
+      - name: Mutation-test the deadcode gate
+        run: bash scripts/__tests__/deadcode-gate.test.sh
 
       - name: Run deadcode gate
         run: make deadcode
