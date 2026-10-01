@@ -5,6 +5,7 @@ package mission
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,7 +58,7 @@ func resolveTarget(ctx context.Context, gibsonURL, want string) (id, name string
 	targets := resp.GetTargets()
 
 	if len(targets) == 0 {
-		return "", "", fmt.Errorf(
+		return "", "", errors.New(
 			"no targets in this tenant: create one with `gibson target create --url ...`, " +
 				"or pass --no-target to scaffold a file you fill in yourself")
 	}
@@ -370,7 +371,7 @@ target_ref, and submit refuses it until you fill it in or pass --target.`,
 			}
 
 			if noTarget {
-				fmt.Fprintln(cmd.ErrOrStderr(),
+				_, _ = fmt.Fprintln(cmd.ErrOrStderr(),
 					"scaffolded with an empty target_ref: fill it in, or pass --target <name-or-uuid> to submit")
 			} else {
 				ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
@@ -381,7 +382,7 @@ target_ref, and submit refuses it until you fill it in or pass --target.`,
 				}
 				body = withTarget(body, id)
 				if name != "" {
-					fmt.Fprintf(cmd.ErrOrStderr(), "target: %s (%s)\n", name, id)
+					_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "target: %s (%s)\n", name, id)
 				}
 			}
 

@@ -60,14 +60,14 @@ func target(id, name string) *targetv1.Target {
 	return &targetv1.Target{Id: id, Name: name, Type: "domain", Status: "active"}
 }
 
-func runNew(t *testing.T, args ...string) (string, string, error) {
+func runNew(t *testing.T, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
 	cmd := newCmd()
 	var out, errOut bytes.Buffer
 	cmd.SetOut(&out)
 	cmd.SetErr(&errOut)
 	cmd.SetArgs(args)
-	err := cmd.Execute()
+	err = cmd.Execute()
 	return out.String(), errOut.String(), err
 }
 
@@ -88,7 +88,7 @@ func TestNewCmd_everyTemplateScaffoldsASubmittableMission(t *testing.T) {
 			require.NoError(t, err)
 			require.Contains(t, stderr, "prod-web", "the scaffolder names the target it chose")
 
-			body, err := os.ReadFile(file)
+			body, err := os.ReadFile(file) // #nosec G304 -- path is this test's own t.TempDir()
 			require.NoError(t, err)
 			require.Contains(t, string(body), only, "the resolved target UUID is written into the scaffold")
 			require.NotContains(t, string(body), `target_ref:  ""`, "no empty placeholder survives")
