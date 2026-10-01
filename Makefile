@@ -92,7 +92,7 @@ generate: regen-cue
 bootstrap:
 	@echo "bootstrap: installing pinned dev toolchain"
 	go install cuelang.org/go/cmd/cue@v0.16.1
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 	go install golang.org/x/tools/cmd/deadcode@latest
 	@echo "bootstrap: ok"
 
