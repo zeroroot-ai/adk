@@ -169,5 +169,8 @@ image:
 # yet (225-issue backlog, adk#160) — new code is gated by `lint-new` in CI;
 # fold `lint` in here once #160 is zero. templates-check is tracked
 # separately under adk#28 (pre-existing template.json whitespace drift).
-check: check-cue-fresh deadcode
+readme-matches-cli: ## The README documents the CLI the binary has, and the Go floor go.mod states (adk#67)
+	@./scripts/check-readme-matches-cli.sh --selftest
+
+check: check-cue-fresh readme-matches-cli deadcode
 	@echo "check: ok"

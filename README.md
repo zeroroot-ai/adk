@@ -28,7 +28,7 @@ go install github.com/zeroroot-ai/adk/gibson/cmd/gibson@latest
 gibson --help
 ```
 
-Requires Go 1.24+. The binary is named `gibson`.
+Requires Go <!-- go-floor -->1.26.8<!-- /go-floor -->+. The binary is named `gibson`.
 
 ## What an AI-driven session looks like
 
@@ -111,18 +111,12 @@ gibson mission render <file>                 # compile to proto-shaped JSON/YAML
 gibson mission submit <file.cue>             # CUE→define→run full round trip
                                              # (CreateMissionDefinition + CreateMission)
 
-# Mission drafts (TenantService)
-gibson mission draft save --name <n> <file.cue>    # persist a CUE draft
-gibson mission draft list                          # list all drafts
-gibson mission draft load <draft-id>               # fetch CUE source to stdout
-gibson mission draft load --out <file> <draft-id>  # or write to a file
-gibson mission draft delete <draft-id>             # delete a draft
-
-# LLM provider management (TenantService)
-gibson provider add --name <n> --type <t> [--model <m>] [--cred k=v ...]
-gibson provider list
-gibson provider delete <name>
-gibson provider test --type <t> [--model <m>] [--cred k=v ...]
+# Targets
+gibson target create --name <n> --url <u>    # register a target, print its UUID
+gibson target list                           # UUID + metadata
+gibson target get <uuid>
+gibson target update <uuid> [--name <n>] ...
+gibson target delete <uuid>
 
 # Machine identity management (TenantService)
 gibson agent enroll --name <n> [--kind agent|tool|plugin]
@@ -133,22 +127,20 @@ gibson agent revoke <principal-id>
 
 ### Connection flags
 
-Commands that call the daemon (`submit`) accept:
+Every command that reaches the platform dials it over your login session, so
+run `gibson login` first. There is no plaintext path and no unauthenticated
+path: the daemon resolves your tenant from the bearer token, not from a flag
+(ADR-0093 decision 4).
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--daemon` | `localhost:50002` (or `GIBSON_DAEMON_ADDR`) | Daemon gRPC address |
-| `--insecure` | false | Plaintext gRPC (development only) |
-| `--timeout` | `30s` | RPC deadline |
+| `--gibson-url` | your login session's URL | Override which install to talk to |
+| `--timeout` | `30s` | Request deadline |
+| `--ca-cert` | system store only | PEM with a CA to trust IN ADDITION to the system store (env: `GIBSON_CA_CERT`) |
 
-Commands that call TenantService (`mission draft`, `provider`, `agent`) accept:
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--tenant` | `localhost:50002` (or `GIBSON_TENANT_ADDR`) | Tenant service gRPC address |
-| `--tenant-id` | `""` (or `GIBSON_TENANT_ID`) | Tenant ID (required by some RPCs) |
-| `--insecure` | false | Plaintext gRPC (development only) |
-| `--timeout` | `30s` | RPC deadline |
+`--ca-cert` is persistent: which CA to trust is a property of the install, not
+of a subcommand. A private-CA install — every self-hosted deployment and every
+kind cluster — needs it, or the TLS handshake fails before the command runs.
 
 The CLI **does not** call admin RPCs. Machine identities are provisioned
 via `gibson agent enroll` (which calls
