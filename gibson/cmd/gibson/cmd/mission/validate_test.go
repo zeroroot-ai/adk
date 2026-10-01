@@ -306,3 +306,42 @@ func TestCUESchemaValidation_ShippedTemplates(t *testing.T) {
 		t.Fatalf("scan-fix-verify deliverable: got %v, want MERGE_REQUEST", got)
 	}
 }
+
+// TestValidateCmd_TargetRef proves validate applies the daemon's target
+// UUID rule to target_ref (adk#61).
+func TestValidateCmd_TargetRef(t *testing.T) {
+	const uuidRef = "6f9619ff-8b86-d011-b42d-00c04fc964ff"
+	tests := []struct {
+		name    string
+		ref     string
+		wantErr bool
+	}{
+		{"scaffold placeholder", "FIXME-target-ref", true},
+		{"target name", "my-target", true},
+		{"uuid", uuidRef, false},
+		{"empty, bound later with --target", "", false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "m.json")
+			body := `{"name":"m","version":"1.0.0","target_ref":"` + tc.ref + `"}`
+			if err := os.WriteFile(file, []byte(body), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			cmd := validateCmd()
+			var out strings.Builder
+			cmd.SetOut(&out)
+			cmd.SetArgs([]string{file})
+			err := cmd.Execute()
+			if tc.wantErr {
+				if err == nil || !strings.Contains(err.Error(), "gibson target list") {
+					t.Fatalf("err = %v, want a message naming gibson target list", err)
+				}
+				return
+			}
+			if err != nil || !strings.Contains(out.String(), "ok") {
+				t.Fatalf("err = %v, out = %q, want ok", err, out.String())
+			}
+		})
+	}
+}

@@ -212,7 +212,7 @@ type builtinTemplate struct {
 
 const minimalScaffold = `// Minimal mission scaffold — gibson mission new.
 //
-// Replace FIXME values, then validate with:
+// Replace FIXME values (target_ref must be a target UUID), then validate with:
 //   gibson mission validate this-file.cue
 //
 // And submit with:
@@ -222,6 +222,7 @@ mission: {
     name:        "FIXME-mission-name"
     description: "FIXME: short description"
     version:     "0.1.0"
+    // FIXME: a target UUID, from "gibson target create" or "gibson target list".
     target_ref:  "FIXME-target-ref"
 
     nodes: {

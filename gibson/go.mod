@@ -5,6 +5,7 @@ go 1.26.8
 require (
 	buf.build/go/protovalidate v1.4.0
 	cuelang.org/go v0.17.1
+	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.12.1
@@ -29,7 +30,6 @@ require (
 	github.com/emicklei/proto v1.14.3 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect

@@ -54,6 +54,9 @@ tool,plugin}/*.runtime.json and, when exactly one exists, picks that.
 Multiple installs require --kind (and --name). GIBSON_AGENT_KEY (a
 base64 runtime credential) overrides the on-disk lookup for CI / k8s.
 
+When no component credential exists and you ran gibson login, inspect
+calls WhoAmI with your login session instead.
+
 Output formats:
   default  human-friendly tree with stable action labels for grep
   --json   raw WhoAmIResponse as canonical proto-JSON (for scripts)`,
@@ -71,12 +74,22 @@ func runInspect(ctx context.Context, kind, name string, jsonOut bool, out, errOu
 	stdout := mustWriter(out)
 	stderr := mustWriter(errOut)
 
+	var (
+		resp         *identitypb.WhoAmIResponse
+		detectedKind string
+	)
 	rc, gibsonURL, detectedKind, err := resolveInstall(kind, name)
-	if err != nil {
+	switch {
+	case errors.Is(err, errNoInstalls) && hasLoginSession():
+		// No component credential, but a person is signed in: ask the
+		// daemon who the login session is.
+		detectedKind = "user"
+		resp, err = callWhoAmISession(ctx)
+	case err != nil:
 		return err
+	default:
+		resp, err = callWhoAmI(ctx, rc, gibsonURL)
 	}
-
-	resp, err := callWhoAmI(ctx, rc, gibsonURL)
 	if err != nil {
 		return fmt.Errorf("inspect: %w", err)
 	}
@@ -94,8 +107,35 @@ func runInspect(ctx context.Context, kind, name string, jsonOut bool, out, errOu
 	}
 
 	renderTree(stdout, resp, detectedKind)
-	preflightWarn(stderr, resp, detectedKind)
+	if detectedKind != "user" {
+		preflightWarn(stderr, resp, detectedKind)
+	}
 	return nil
+}
+
+// errNoInstalls means no component credential exists on disk.
+var errNoInstalls = errors.New("inspect: no registered components found under ~/.gibson/{agent,tool,plugin}/ and no login session — run `gibson login`, or `gibson component register --token <bootstrap-token>`")
+
+// hasLoginSession reports whether `gibson login` stored a session.
+func hasLoginSession() bool {
+	_, err := deviceauth.LoadCredentials()
+	return err == nil
+}
+
+// callWhoAmISession calls IdentityService.WhoAmI with the bearer token of
+// the stored login session. The daemon allows a USER identity on this RPC
+// and derives the caller from the token.
+func callWhoAmISession(ctx context.Context) (*identitypb.WhoAmIResponse, error) {
+	conn, err := deviceauth.Dial(ctx, "")
+	if err != nil {
+		return nil, fmt.Errorf("dial with login session: %w", err)
+	}
+	defer func() { _ = conn.Close() }()
+	resp, err := identitypb.NewIdentityServiceClient(conn).WhoAmI(ctx, &identitypb.WhoAmIRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("WhoAmI failed: %w", err)
+	}
+	return resp, nil
 }
 
 // resolveInstall determines which registered component to inspect and loads its
@@ -122,7 +162,7 @@ func resolveInstall(kind, name string) (capabilitygrant.RuntimeCredential, strin
 		}
 		switch len(installs) {
 		case 0:
-			return capabilitygrant.RuntimeCredential{}, "", "", errors.New("inspect: no registered components found under ~/.gibson/{agent,tool,plugin}/ — run `gibson component register --token <bootstrap-token>` first")
+			return capabilitygrant.RuntimeCredential{}, "", "", errNoInstalls
 		case 1:
 			k, n = installs[0].Kind, installs[0].Name
 		default:

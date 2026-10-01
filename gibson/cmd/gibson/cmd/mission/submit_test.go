@@ -189,7 +189,7 @@ func TestSubmitCmd_detach(t *testing.T) {
 	const (
 		defID    = "def-detach"
 		msnID    = "msn-detach"
-		targetID = "tgt-detach"
+		targetID = "6f9619ff-8b86-d011-b42d-00c04fc964ff"
 	)
 	streamReleased := make(chan struct{})
 	svc := &fakeDaemonServer{
@@ -225,4 +225,27 @@ func TestSubmitCmd_detach(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("the stream was not released after --detach returned")
 	}
+}
+
+// TestSubmitCmd_nonUUIDTargetRejectedBeforeDefine proves submit applies the
+// daemon's target UUID rule before it registers a definition (adk#61).
+func TestSubmitCmd_nonUUIDTargetRejectedBeforeDefine(t *testing.T) {
+	svc := &fakeDaemonServer{
+		createDefFn: func(context.Context, *daemonv1.CreateMissionDefinitionRequest) (*daemonv1.CreateMissionDefinitionResponse, error) {
+			t.Fatal("a mission with a non-UUID target must be rejected before it is defined")
+			return nil, nil
+		},
+	}
+	addr := startFakeDaemonServer(t, svc)
+	writeTestSession(t, addr)
+
+	file := t.TempDir() + "/m.yaml"
+	require.NoError(t, os.WriteFile(file, []byte(`{"name":"bad","version":"1.0.0","target_ref":"FIXME-target-ref"}`), 0o644))
+
+	cmd := submitCmd()
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetArgs([]string{file})
+	err := cmd.Execute()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "gibson target list")
 }
