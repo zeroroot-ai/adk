@@ -116,6 +116,9 @@ unauthenticated path.`,
 					"no target: set `target_ref` in the mission definition or pass --target <id> " +
 						"(create one with `gibson target create --url ...`)")
 			}
+			if err := checkTargetRef(targetID); err != nil {
+				return fmt.Errorf("validate: %w", err)
+			}
 
 			// Step 1: register the parsed definition to obtain a
 			// stable mission_definition_id.

@@ -153,6 +153,9 @@ func PollToken(ctx context.Context, cfg *oauth2.Config, da *oauth2.DeviceAuthRes
 		wait, limited := rateLimitWait(err)
 		if !limited {
 			if err != nil {
+				if codeExpired(ctx, da, err) {
+					return nil, ErrDeviceCodeExpired
+				}
 				return nil, fmt.Errorf("deviceauth: poll token: %w", err)
 			}
 			return tok, nil
@@ -166,6 +169,26 @@ func PollToken(ctx context.Context, cfg *oauth2.Config, da *oauth2.DeviceAuthRes
 		case <-time.After(wait):
 		}
 	}
+}
+
+// ErrDeviceCodeExpired is returned by PollToken when nobody approved the
+// login before the device code lifetime ended.
+var ErrDeviceCodeExpired = errors.New("the login code expired before it was approved: run `gibson login` again")
+
+// codeExpired reports whether err means the device code ran out. oauth2
+// bounds the poll with a context deadline at da.Expiry, so the expiry
+// shows as context.DeadlineExceeded. That case differs from the caller's
+// own deadline: the caller's context is still live when the code expires.
+// The token endpoint can also answer expired_token.
+func codeExpired(ctx context.Context, da *oauth2.DeviceAuthResponse, err error) bool {
+	var re *oauth2.RetrieveError
+	if errors.As(err, &re) && re.ErrorCode == "expired_token" {
+		return true
+	}
+	if ctx.Err() != nil || !errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	return !da.Expiry.IsZero() && !time.Now().Before(da.Expiry)
 }
 
 // rateLimitWait reports whether err is an HTTP 429 from the token

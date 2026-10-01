@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -248,5 +249,48 @@ func TestPollTokenReturnsOtherErrors(t *testing.T) {
 	var re *oauth2.RetrieveError
 	if !errors.As(err, &re) || re.ErrorCode != "access_denied" {
 		t.Fatalf("err = %v, want access_denied", err)
+	}
+}
+
+// pendingServer answers every token request with authorization_pending.
+func pendingServer(t *testing.T) *oauth2.Config {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error":"authorization_pending"}`))
+	}))
+	t.Cleanup(srv.Close)
+	return &oauth2.Config{ClientID: "cli", Endpoint: oauth2.Endpoint{TokenURL: srv.URL, AuthStyle: PublicClientAuthStyle}}
+}
+
+// TestPollTokenReportsExpiredCode proves an expired device code gives
+// ErrDeviceCodeExpired and not a bare "context deadline exceeded".
+func TestPollTokenReportsExpiredCode(t *testing.T) {
+	cfg := pendingServer(t)
+	da := &oauth2.DeviceAuthResponse{DeviceCode: "dc", Interval: 1, Expiry: time.Now().Add(300 * time.Millisecond)}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := PollToken(ctx, cfg, da)
+	if !errors.Is(err, ErrDeviceCodeExpired) {
+		t.Fatalf("err = %v, want ErrDeviceCodeExpired", err)
+	}
+	if !strings.Contains(err.Error(), "gibson login") {
+		t.Fatalf("err = %q, want it to name `gibson login`", err)
+	}
+}
+
+// TestPollTokenKeepsCallerTimeout proves the caller's own deadline is
+// not reported as an expired code.
+func TestPollTokenKeepsCallerTimeout(t *testing.T) {
+	cfg := pendingServer(t)
+	da := &oauth2.DeviceAuthResponse{DeviceCode: "dc", Interval: 1, Expiry: time.Now().Add(time.Minute)}
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
+	_, err := PollToken(ctx, cfg, da)
+	if errors.Is(err, ErrDeviceCodeExpired) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("err = %v, want the caller's context deadline", err)
 	}
 }
