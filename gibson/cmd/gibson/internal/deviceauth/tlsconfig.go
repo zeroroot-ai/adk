@@ -97,8 +97,24 @@ func HTTPClient(caCertPath string) (*http.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Clone DefaultTransport rather than building a bare one. A bare
+	// &http.Transport{} inherits NOTHING from the default, so the previous
+	// version silently dropped every setting Go ships:
+	//
+	//   Proxy                 HTTPS_PROXY, HTTP_PROXY and NO_PROXY ignored, so
+	//                         behind a corporate proxy `gibson login` hangs
+	//                         until the 30s timeout with no hint and no flag
+	//   ForceAttemptHTTP2     false once TLSClientConfig is custom, so h2 is
+	//                         never negotiated even where the server offers it
+	//   DialContext timeouts  no connect or keep-alive deadline
+	//   Idle pooling          no connection reuse across the device-flow polls
+	//
+	// Clone keeps all of them and overrides only TLS, which is the single thing
+	// this function exists to change.
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	tr.TLSClientConfig = tlsCfg
 	return &http.Client{
-		Transport: &http.Transport{TLSClientConfig: tlsCfg},
+		Transport: tr,
 		Timeout:   30 * time.Second,
 	}, nil
 }

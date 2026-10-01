@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -181,4 +182,77 @@ func TestHTTPClient_UnreadableCAFileIsAnError(t *testing.T) {
 	if _, err := HTTPClient(filepath.Join(t.TempDir(), "absent.pem")); err == nil {
 		t.Fatal("an unreadable CA file must be an error, not a silent system-pool fallback")
 	}
+}
+
+// TestHTTPClientHonoursProxyEnv is the regression guard for the bare
+// &http.Transport{} this package used to build. A bare Transport inherits
+// nothing from http.DefaultTransport, so HTTPS_PROXY was ignored and `gibson
+// login` behind a corporate proxy hung until the 30s timeout, with no error
+// naming a proxy and no flag to work around it.
+//
+// It asserts the Proxy FUNCTION rather than a resolved proxy URL, on purpose.
+// http.ProxyFromEnvironment caches the environment on its first call for the
+// life of the process, so a t.Setenv-based assertion passes alone and fails
+// once any earlier test in the package has already warmed that cache. The
+// first version of this test did exactly that. Comparing the func pointer is
+// order-independent and tests the property that actually matters: the
+// transport delegates proxy selection to Go's environment-reading function.
+func TestHTTPClientHonoursProxyEnv(t *testing.T) {
+	hc, err := HTTPClient("")
+	if err != nil {
+		t.Fatalf("HTTPClient: %v", err)
+	}
+	tr, ok := hc.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport is %T, want *http.Transport", hc.Transport)
+	}
+	if tr.Proxy == nil {
+		t.Fatal("transport has no Proxy func, so HTTPS_PROXY/HTTP_PROXY/NO_PROXY are ignored")
+	}
+	want := reflect.ValueOf(http.ProxyFromEnvironment).Pointer()
+	if got := reflect.ValueOf(tr.Proxy).Pointer(); got != want {
+		t.Error("Proxy is not http.ProxyFromEnvironment, so the proxy environment is not read")
+	}
+}
+
+// TestHTTPClientKeepsDefaultTransportSettings pins the other settings a bare
+// Transport silently dropped. ForceAttemptHTTP2 is the one that bites quietly:
+// Go disables automatic HTTP/2 as soon as TLSClientConfig is custom unless it
+// is set, so a bare Transport downgraded every call to HTTP/1.1.
+func TestHTTPClientKeepsDefaultTransportSettings(t *testing.T) {
+	hc, err := HTTPClient("")
+	if err != nil {
+		t.Fatalf("HTTPClient: %v", err)
+	}
+	tr := hc.Transport.(*http.Transport)
+
+	if !tr.ForceAttemptHTTP2 {
+		t.Error("ForceAttemptHTTP2 is false, so a custom TLS config disables h2")
+	}
+	if tr.DialContext == nil {
+		t.Error("DialContext is nil, so there is no connect or keep-alive deadline")
+	}
+	if tr.TLSHandshakeTimeout == 0 {
+		t.Error("TLSHandshakeTimeout is 0, so a stalled handshake hangs")
+	}
+	if tr.IdleConnTimeout == 0 {
+		t.Error("IdleConnTimeout is 0, so idle connections are never reaped")
+	}
+}
+
+// TestHTTPClientStillOverridesTLS makes sure the clone did not lose the one
+// thing this function exists to do.
+func TestHTTPClientStillOverridesTLS(t *testing.T) {
+	hc, err := HTTPClient("")
+	if err != nil {
+		t.Fatalf("HTTPClient: %v", err)
+	}
+	tr := hc.Transport.(*http.Transport)
+	if tr.TLSClientConfig == nil {
+		t.Fatal("TLSClientConfig is nil, so the CA trust override is gone")
+	}
+	if tr != http.DefaultTransport.(*http.Transport) {
+		return // a clone, as intended
+	}
+	t.Fatal("transport IS http.DefaultTransport — the clone mutated the global")
 }
