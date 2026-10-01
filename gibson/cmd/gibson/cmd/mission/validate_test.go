@@ -325,7 +325,7 @@ func TestValidateCmd_TargetRef(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "m.json")
 			body := `{"name":"m","version":"1.0.0","target_ref":"` + tc.ref + `"}`
-			if err := os.WriteFile(file, []byte(body), 0o644); err != nil {
+			if err := os.WriteFile(file, []byte(body), 0o600); err != nil {
 				t.Fatal(err)
 			}
 			cmd := validateCmd()

@@ -139,13 +139,12 @@ func ensureProtoBindings(dir string) error {
 		return nil
 	}
 
-	buf, err := exec.LookPath("buf")
-	if err != nil {
+	if _, err := exec.LookPath("buf"); err != nil {
 		return errors.New("component build: api/gen is missing or stale and buf is not on PATH: " +
 			"install buf (https://buf.build/docs/installation), protoc-gen-go and protoc-gen-go-grpc, then run `make proto`")
 	}
 	fmt.Println("component build: api/gen is missing or stale — running buf generate...")
-	gen := exec.Command(buf, "generate")
+	gen := exec.Command("buf", "generate")
 	gen.Dir = dir
 	gen.Stdout = os.Stdout
 	gen.Stderr = os.Stderr
@@ -169,7 +168,7 @@ func newestFile(root, suffix string) (time.Time, error) {
 		}
 		info, err := d.Info()
 		if err != nil {
-			return err
+			return fmt.Errorf("stat %s: %w", path, err)
 		}
 		if info.ModTime().After(newest) {
 			newest = info.ModTime()

@@ -30,7 +30,7 @@ func (s *whoAmIServer) WhoAmI(ctx context.Context, _ *identitypb.WhoAmIRequest) 
 		s.auth = v[0]
 	}
 	if s.auth != "Bearer human-token" {
-		return nil, status.Error(codes.Unauthenticated, "bad token")
+		return nil, status.Error(codes.Unauthenticated, "bad token") //nolint:wrapcheck // a gRPC handler returns the status itself
 	}
 	return &identitypb.WhoAmIResponse{PrincipalId: "user-1", Name: "user-1", TenantId: "tenant-1"}, nil
 }

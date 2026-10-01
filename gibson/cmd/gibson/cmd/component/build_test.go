@@ -18,7 +18,8 @@ func fakeTools(t *testing.T, withBuf bool) string {
 	bin := t.TempDir()
 	log := filepath.Join(t.TempDir(), "calls.log")
 	write := func(name, body string) {
-		if err := os.WriteFile(filepath.Join(bin, name), []byte("#!/bin/sh\n"+body), 0o755); err != nil {
+		// The stub must be executable, so the 0600 limit does not fit.
+		if err := os.WriteFile(filepath.Join(bin, name), []byte("#!/bin/sh\n"+body), 0o700); err != nil { //nolint:gosec // executable test stub
 			t.Fatal(err)
 		}
 	}
@@ -45,7 +46,7 @@ func scaffoldTool(t *testing.T) string {
 
 func readLog(t *testing.T, log string) string {
 	t.Helper()
-	b, err := os.ReadFile(log)
+	b, err := os.ReadFile(filepath.Clean(log))
 	if err != nil && !os.IsNotExist(err) {
 		t.Fatal(err)
 	}
@@ -74,11 +75,11 @@ func TestBuildSkipsFreshProtoBindings(t *testing.T) {
 	log := fakeTools(t, true)
 	dir := scaffoldTool(t)
 	gen := filepath.Join(dir, "api", "gen", "x")
-	if err := os.MkdirAll(gen, 0o755); err != nil {
+	if err := os.MkdirAll(gen, 0o750); err != nil {
 		t.Fatal(err)
 	}
 	f := filepath.Join(gen, "x.pb.go")
-	if err := os.WriteFile(f, []byte("package x\n"), 0o644); err != nil {
+	if err := os.WriteFile(f, []byte("package x\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	future := time.Now().Add(time.Hour)
@@ -100,11 +101,11 @@ func TestBuildRegeneratesStaleProtoBindings(t *testing.T) {
 	log := fakeTools(t, true)
 	dir := scaffoldTool(t)
 	gen := filepath.Join(dir, "api", "gen", "x")
-	if err := os.MkdirAll(gen, 0o755); err != nil {
+	if err := os.MkdirAll(gen, 0o750); err != nil {
 		t.Fatal(err)
 	}
 	f := filepath.Join(gen, "x.pb.go")
-	if err := os.WriteFile(f, []byte("package x\n"), 0o644); err != nil {
+	if err := os.WriteFile(f, []byte("package x\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	old := time.Now().Add(-time.Hour)

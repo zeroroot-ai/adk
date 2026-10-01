@@ -240,7 +240,7 @@ func TestSubmitCmd_nonUUIDTargetRejectedBeforeDefine(t *testing.T) {
 	writeTestSession(t, addr)
 
 	file := t.TempDir() + "/m.yaml"
-	require.NoError(t, os.WriteFile(file, []byte(`{"name":"bad","version":"1.0.0","target_ref":"FIXME-target-ref"}`), 0o644))
+	require.NoError(t, os.WriteFile(file, []byte(`{"name":"bad","version":"1.0.0","target_ref":"FIXME-target-ref"}`), 0o600))
 
 	cmd := submitCmd()
 	cmd.SetOut(&bytes.Buffer{})
