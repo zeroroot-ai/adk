@@ -4,8 +4,9 @@
 # The README documented `gibson mission draft` and `gibson provider`, two
 # command groups the cobra tree has no trace of, plus `--daemon`,
 # `--insecure`, `GIBSON_DAEMON_ADDR` and `GIBSON_TENANT_ADDR`, none of which
-# the binary reads. It also claimed a Go floor of 1.24 against a go.mod that
-# says 1.26.8, so a person on 1.24 could not build. A newcomer following it
+# the binary reads. It also claimed a Go floor three minor versions below
+# the one go.mod named, so a person who believed it could not build. A
+# newcomer following it
 # got "unknown command" on their third step (adk#67).
 #
 # Two assertions, both keyed by content:
@@ -80,7 +81,21 @@ go_floor_gomod() {
 build_spec() {
   # `docs cli` writes the stable JSON document to stdout. There is no --json
   # flag; the command has one output shape.
-  ( cd "$ROOT/gibson" && go run ./cmd/gibson docs cli ) >"$1"
+  if ! ( cd "$ROOT/gibson" && go run ./cmd/gibson docs cli ) >"$1" 2>"$1.err"; then
+    echo "❌ could not build the CLI spec; the guard cannot compare anything:" >&2
+    sed 's/^/     /' "$1.err" >&2
+    return 1
+  fi
+  # An empty or command-less spec is a broken build, not a README with no
+  # valid commands. Without this the guard reports every documented command
+  # as drift, which is a confident wrong answer — and the shape it takes
+  # when `go` is an asdf shim pointing at a version that is not installed:
+  # the shim prints its version list and exits, so stdout is not JSON.
+  if ! jq -e '[.. | objects | select(has("path"))] | length > 0' "$1" >/dev/null 2>&1; then
+    echo "❌ the CLI spec names no commands; the binary did not build, or its output is not the expected JSON." >&2
+    head -3 "$1" | sed 's/^/     /' >&2
+    return 1
+  fi
 }
 
 # unknown_commands <known-file> <parents-file> <readme>
