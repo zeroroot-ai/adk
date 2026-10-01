@@ -118,6 +118,28 @@ gibson target get <uuid>
 gibson target update <uuid> [--name <n>] ...
 gibson target delete <uuid>
 
+# Secrets
+# A secret is a NAME and BYTES. There is no type or format field: the thing that
+# reads a credential is the only party that knows what it needs, so it validates
+# by parsing (ADR-0096). A Target never names a secret — a job declares which
+# credentials its work may read, in JobSpec.credential_names.
+#
+# Names are EXACT. The name is the stored key AND the additional authenticated
+# data of the secret's own envelope, so nothing trims or rewrites what you type,
+# and `list` prints keys you can paste straight into credential_names.
+gibson secret set cred:goat-cluster --from-file ~/.kube/goat.yaml
+                                             # store a secret (never as an argument)
+gibson secret list --prefix cred:            # exact stored keys + metadata
+gibson secret get cred:goat-cluster          # metadata only; the RPC returns no value
+gibson secret rotate cred:goat-cluster --from-file new.yaml
+gibson secret delete cred:goat-cluster --yes
+gibson secret count                          # how many the active backend holds
+gibson secret backend show                   # active backend, sensitive fields redacted
+gibson secret backend probe --provider byo --address https://vault.example
+                                             # validate without saving
+gibson secret backend set --provider byo --address https://vault.example
+                                             # probe, then save on success
+
 # Machine identity management (TenantService)
 gibson agent enroll --name <n> [--kind agent|tool|plugin]
                                              # prints one-time bootstrap token

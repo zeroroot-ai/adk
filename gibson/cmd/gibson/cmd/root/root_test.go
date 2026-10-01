@@ -16,7 +16,7 @@ import (
 // Subcommands and flags are intentionally NOT covered; only the
 // outer verb surface is the load-bearing contract.
 func TestRootCommandSurface(t *testing.T) {
-	want := []string{"agent", "component", "connector", "docs", "init", "inspect", "login", "logout", "mission", "target"}
+	want := []string{"agent", "component", "connector", "docs", "init", "inspect", "login", "logout", "mission", "secret", "target"}
 
 	got := make([]string, 0, len(rootCmd.Commands()))
 	for _, c := range rootCmd.Commands() {
