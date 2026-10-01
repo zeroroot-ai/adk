@@ -4,13 +4,88 @@
 package mission
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
+	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/deviceauth"
+	daemonv1 "github.com/zeroroot-ai/sdk/api/gen/gibson/daemon/v1"
+	targetv1 "github.com/zeroroot-ai/sdk/api/gen/gibson/target/v1"
 )
+
+// targetRefRx matches the one `target_ref:` line in a template body. Keyed by
+// content, not by line number, so adding a node to a template never re-pins
+// it. Every shipped template carries exactly one, asserted in new_test.go.
+var targetRefRx = regexp.MustCompile(`(?m)^(\s*target_ref:\s*)"[^"]*"`)
+
+// withTarget rewrites a scaffold's target_ref to a resolved target UUID.
+func withTarget(body, targetID string) string {
+	return targetRefRx.ReplaceAllString(body, `${1}"`+targetID+`"`)
+}
+
+// resolveTarget turns what the user asked for into a target UUID.
+//
+// A UUID is taken as given and needs no daemon. Anything else is a name, and
+// an empty request means "the obvious one", so both read the tenant's targets
+// and the command refuses rather than guessing when there is no single
+// answer. `mission new` scaffolded `target_ref: ""` until now, and `submit`
+// refused one command later with "no target" — every shipped template failed
+// that way, which is the first thing a new member saw (adk#68). A scaffold
+// that cannot run is not a scaffold.
+func resolveTarget(ctx context.Context, gibsonURL, want string) (id, name string, err error) {
+	if _, perr := uuid.Parse(want); perr == nil {
+		return want, "", nil
+	}
+
+	conn, err := deviceauth.Dial(ctx, gibsonURL)
+	if err != nil {
+		return "", "", fmt.Errorf("%w (or pass --target <uuid>, or --no-target to scaffold offline)", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	resp, err := daemonv1.NewDaemonServiceClient(conn).ListTargets(ctx, &daemonv1.ListTargetsRequest{})
+	if err != nil {
+		return "", "", fmt.Errorf("ListTargets: %w", err)
+	}
+	targets := resp.GetTargets()
+
+	if len(targets) == 0 {
+		return "", "", fmt.Errorf(
+			"no targets in this tenant: create one with `gibson target create --url ...`, " +
+				"or pass --no-target to scaffold a file you fill in yourself")
+	}
+
+	if want != "" {
+		for _, t := range targets {
+			if t.GetName() == want {
+				return t.GetId(), t.GetName(), nil
+			}
+		}
+		return "", "", fmt.Errorf("no target named %q; this tenant has:\n%s", want, targetLines(targets))
+	}
+
+	if len(targets) == 1 {
+		return targets[0].GetId(), targets[0].GetName(), nil
+	}
+	return "", "", fmt.Errorf(
+		"this tenant has %d targets, so pick one with --target <name-or-uuid>:\n%s",
+		len(targets), targetLines(targets))
+}
+
+func targetLines(targets []*targetv1.Target) string {
+	var b strings.Builder
+	for _, t := range targets {
+		fmt.Fprintf(&b, "  %s  %s\n", t.GetId(), t.GetName())
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
 
 // builtinTemplates ships a v1 set of inline CUE templates so
 // `mission new --from-template <name>` works without an OCI
@@ -244,6 +319,10 @@ func newCmd() *cobra.Command {
 		fromTemplate string
 		listTpls     bool
 		outPath      string
+		targetRef    string
+		noTarget     bool
+		gibsonURL    string
+		timeout      time.Duration
 	)
 	c := &cobra.Command{
 		Use:   "new",
@@ -252,7 +331,15 @@ func newCmd() *cobra.Command {
 
 With --from-template <name>, writes the named template's content. Use
 --list-templates to see available templates. Without flags, writes a
-minimal scaffold with FIXME placeholders.`,
+minimal scaffold with FIXME placeholders.
+
+The scaffold names a target, so what it writes submits as written. Pass
+--target <name-or-uuid> to choose one; with no --target the command reads
+your tenant's targets and uses the only one, or asks you to pick when there
+is more than one. A UUID is taken as given and needs no daemon.
+
+Pass --no-target to scaffold offline. The file then carries an empty
+target_ref, and submit refuses it until you fill it in or pass --target.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if listTpls {
 				names := make([]string, 0, len(builtinTemplates))
@@ -282,6 +369,22 @@ minimal scaffold with FIXME placeholders.`,
 				body = minimalScaffold
 			}
 
+			if noTarget {
+				fmt.Fprintln(cmd.ErrOrStderr(),
+					"scaffolded with an empty target_ref: fill it in, or pass --target <name-or-uuid> to submit")
+			} else {
+				ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
+				defer cancel()
+				id, name, err := resolveTarget(ctx, gibsonURL, targetRef)
+				if err != nil {
+					return err
+				}
+				body = withTarget(body, id)
+				if name != "" {
+					fmt.Fprintf(cmd.ErrOrStderr(), "target: %s (%s)\n", name, id)
+				}
+			}
+
 			if outPath == "" || outPath == "-" {
 				_, err := fmt.Fprint(cmd.OutOrStdout(), body)
 				return err
@@ -295,5 +398,10 @@ minimal scaffold with FIXME placeholders.`,
 	c.Flags().StringVar(&fromTemplate, "from-template", "", "Name of a built-in template to scaffold from")
 	c.Flags().BoolVar(&listTpls, "list-templates", false, "List available templates and exit")
 	c.Flags().StringVarP(&outPath, "output", "o", "-", "Output path; '-' for stdout")
+	c.Flags().StringVar(&targetRef, "target", "", "Target name or UUID to write into the scaffold")
+	c.Flags().BoolVar(&noTarget, "no-target", false, "Scaffold offline, leaving target_ref empty")
+	c.Flags().StringVar(&gibsonURL, "gibson-url", "", "Daemon URL (default: your login session's)")
+	c.Flags().DurationVar(&timeout, "timeout", 30*time.Second, "Timeout for the target lookup")
+	c.MarkFlagsMutuallyExclusive("target", "no-target")
 	return c
 }

@@ -105,7 +105,7 @@ gibson docs schema [component-yaml|plugin-yaml]
                                          # JSON Schema for editors / AI coders
 
 # Mission authoring
-gibson mission new [--from-template <name>]  # scaffold a mission CUE file
+gibson mission new [--from-template <name>]  # scaffold a mission CUE file, naming a target
 gibson mission validate <file>               # cue vet + protovalidate
 gibson mission render <file>                 # compile to proto-shaped JSON/YAML
 gibson mission submit <file.cue>             # CUE→define→run full round trip
