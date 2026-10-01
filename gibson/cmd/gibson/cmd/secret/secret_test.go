@@ -74,7 +74,11 @@ func serve(t *testing.T, svc secretsv1.SecretsServiceServer) string {
 func run(t *testing.T, addr string, args ...string) (string, error) {
 	t.Helper()
 	t.Setenv("HOME", t.TempDir())
-	creds := &deviceauth.Credentials{
+	// gosec G101 fires on AccessToken below. It is a fake token for a fake
+	// in-process server on a loopback port, which gosec cannot distinguish from
+	// a real one. Suppressed at the struct rather than the file, so a genuine
+	// credential added elsewhere in this file still trips it.
+	creds := &deviceauth.Credentials{ //nolint:gosec // G101: fake token for a test server
 		Issuer:       "http://127.0.0.1:1",
 		ClientID:     "gibson-cli",
 		TokenURL:     "http://127.0.0.1:1/token",

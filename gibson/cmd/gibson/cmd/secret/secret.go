@@ -25,6 +25,12 @@
 //
 // SECURITY: no subcommand ever prints a secret's value, and none accepts one as
 // an argument. See the comment on valueFlags.
+//
+// Every write is `_, _ = fmt.Fprint…`, which errcheck requires and which is also
+// the honest shape: a write error on the command's own output is not actionable,
+// because the place you would report it to is the thing that just failed. The
+// only write whose failure changes behaviour is the one that carries a secret,
+// and there is none — nothing here writes a value.
 package secret
 
 import (
@@ -105,7 +111,7 @@ func (f *connFlags) dial(ctx context.Context) (secretsv1.SecretsServiceClient, f
 	conn, err := deviceauth.Dial(cctx, f.gibsonURL)
 	if err != nil {
 		cancel()
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, fmt.Errorf("dialing the daemon: %w", err)
 	}
 	cleanup := func() { _ = conn.Close() }
 	return secretsv1.NewSecretsServiceClient(conn), cleanup, cctx, cancel, nil
@@ -221,7 +227,7 @@ a key nobody can read.
 				return fmt.Errorf("SetSecret: %w", err)
 			}
 			md := resp.GetMetadata()
-			fmt.Fprintf(cmd.OutOrStdout(), "%s (version %d)\n", md.GetName(), md.GetVersion())
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s (version %d)\n", md.GetName(), md.GetVersion())
 			return nil
 		},
 	}
@@ -264,7 +270,7 @@ else.`,
 				return fmt.Errorf("RotateSecret: %w", err)
 			}
 			md := resp.GetMetadata()
-			fmt.Fprintf(cmd.OutOrStdout(), "%s (version %d)\n", md.GetName(), md.GetVersion())
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s (version %d)\n", md.GetName(), md.GetVersion())
 			return nil
 		},
 	}
@@ -306,14 +312,14 @@ harness callback a sandboxed component uses, which is not callable from here.`,
 
 func printMetadata(cmd *cobra.Command, md *secretsv1.SecretMetadata) {
 	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "NAME\t%s\n", md.GetName())
-	fmt.Fprintf(w, "CATEGORY\t%s\n", md.GetCategory())
-	fmt.Fprintf(w, "VERSION\t%d\n", md.GetVersion())
-	fmt.Fprintf(w, "CREATED\t%s\tby %s\n", unixOrDash(md.GetCreatedAtUnix()), md.GetCreatedBy())
-	fmt.Fprintf(w, "UPDATED\t%s\tby %s\n", unixOrDash(md.GetUpdatedAtUnix()), md.GetUpdatedBy())
-	fmt.Fprintf(w, "LAST READ\t%s\n", unixOrDash(md.GetLastAccessedAtUnix()))
+	_, _ = fmt.Fprintf(w, "NAME\t%s\n", md.GetName())
+	_, _ = fmt.Fprintf(w, "CATEGORY\t%s\n", md.GetCategory())
+	_, _ = fmt.Fprintf(w, "VERSION\t%d\n", md.GetVersion())
+	_, _ = fmt.Fprintf(w, "CREATED\t%s\tby %s\n", unixOrDash(md.GetCreatedAtUnix()), md.GetCreatedBy())
+	_, _ = fmt.Fprintf(w, "UPDATED\t%s\tby %s\n", unixOrDash(md.GetUpdatedAtUnix()), md.GetUpdatedBy())
+	_, _ = fmt.Fprintf(w, "LAST READ\t%s\n", unixOrDash(md.GetLastAccessedAtUnix()))
 	if pa := md.GetPluginAssociations(); len(pa) > 0 {
-		fmt.Fprintf(w, "PLUGINS\t%s\n", strings.Join(pa, ", "))
+		_, _ = fmt.Fprintf(w, "PLUGINS\t%s\n", strings.Join(pa, ", "))
 	}
 	_ = w.Flush()
 }
@@ -361,18 +367,18 @@ credential_names needs, so they can be copied without translation.
 			}
 			secrets := resp.GetSecrets()
 			if len(secrets) == 0 {
-				fmt.Fprintln(cmd.ErrOrStderr(), "no secrets")
+				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "no secrets")
 				return nil
 			}
 			w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
-			fmt.Fprintln(w, "NAME\tCATEGORY\tVERSION\tUPDATED\tUPDATED BY")
+			_, _ = fmt.Fprintln(w, "NAME\tCATEGORY\tVERSION\tUPDATED\tUPDATED BY")
 			for _, md := range secrets {
-				fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\n",
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\n",
 					md.GetName(), md.GetCategory(), md.GetVersion(),
 					unixOrDash(md.GetUpdatedAtUnix()), md.GetUpdatedBy())
 			}
 			_ = w.Flush()
-			fmt.Fprintf(cmd.ErrOrStderr(), "\n%d shown, %d total\n", len(secrets), resp.GetTotal())
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "\n%d shown, %d total\n", len(secrets), resp.GetTotal())
 			return nil
 		},
 	}
@@ -411,7 +417,7 @@ not create.`,
 			if _, err := client.DeleteSecret(ctx, &secretsv1.DeleteSecretRequest{Name: args[0]}); err != nil {
 				return fmt.Errorf("DeleteSecret: %w", err)
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "deleted %s\n", args[0])
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "deleted %s\n", args[0])
 			return nil
 		},
 	}
@@ -442,7 +448,7 @@ whether a backend swap moved everything it should have.`,
 			if err != nil {
 				return fmt.Errorf("CountSecrets: %w", err)
 			}
-			fmt.Fprintln(cmd.OutOrStdout(), resp.GetCount())
+			_, _ = fmt.Fprintln(cmd.OutOrStdout(), resp.GetCount())
 			return nil
 		},
 	}
@@ -501,12 +507,12 @@ func backendShowCmd() *cobra.Command {
 				return fmt.Errorf("GetBrokerConfig: %w", err)
 			}
 			if !resp.GetConfigured() {
-				fmt.Fprintln(cmd.ErrOrStderr(), "no backend configured for this tenant")
+				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "no backend configured for this tenant")
 				return nil
 			}
 			cfg := resp.GetConfig()
 			w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
-			fmt.Fprintf(w, "PROVIDER\t%s\n", cfg.GetProvider())
+			_, _ = fmt.Fprintf(w, "PROVIDER\t%s\n", cfg.GetProvider())
 			writeIfSet(w, "ADDRESS", cfg.GetAddress())
 			writeIfSet(w, "NAMESPACE/PATH", cfg.GetNamespaceOrPath())
 			writeIfSet(w, "MOUNT", cfg.GetMount())
@@ -515,9 +521,9 @@ func backendShowCmd() *cobra.Command {
 			// their values. It is the only way to tell a missing credential from
 			// a wrong one without sending the credential back.
 			if s := cfg.GetSensitiveFieldsSet(); len(s) > 0 {
-				fmt.Fprintf(w, "SECRETS STORED\t%s\n", strings.Join(s, ", "))
+				_, _ = fmt.Fprintf(w, "SECRETS STORED\t%s\n", strings.Join(s, ", "))
 			}
-			fmt.Fprintf(w, "UPDATED\t%s\tby %s\n", unixOrDash(cfg.GetUpdatedAtUnix()), cfg.GetUpdatedBy())
+			_, _ = fmt.Fprintf(w, "UPDATED\t%s\tby %s\n", unixOrDash(cfg.GetUpdatedAtUnix()), cfg.GetUpdatedBy())
 			_ = w.Flush()
 			return nil
 		},
@@ -528,7 +534,7 @@ func backendShowCmd() *cobra.Command {
 
 func writeIfSet(w io.Writer, label, value string) {
 	if value != "" {
-		fmt.Fprintf(w, "%s\t%s\n", label, value)
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", label, value)
 	}
 }
 
@@ -669,7 +675,7 @@ is refused rather than stored.`,
 			if err := reportProbe(cmd, resp.GetProbeResult()); err != nil {
 				return err
 			}
-			fmt.Fprintln(cmd.OutOrStdout(), "saved")
+			_, _ = fmt.Fprintln(cmd.OutOrStdout(), "saved")
 			return nil
 		},
 	}
@@ -686,7 +692,7 @@ func reportProbe(cmd *cobra.Command, r *secretsv1.ProbeResult) error {
 		return errors.New("server returned no probe result")
 	}
 	if r.GetOk() {
-		fmt.Fprintf(cmd.OutOrStdout(), "probe ok (%dms)\n", r.GetDurationMs())
+		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "probe ok (%dms)\n", r.GetDurationMs())
 		return nil
 	}
 	// error_class is the server's category for the failure and error_message is
