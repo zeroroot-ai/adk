@@ -321,8 +321,7 @@ func TestPollTokenKeepsCallerTimeout(t *testing.T) {
 //
 // They match, so this rejects nothing that works today.
 func TestDiscover_RejectsIssuerMismatch(t *testing.T) {
-	var srv *httptest.Server
-	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{
 			"issuer":"https://evil.example",
 			"authorization_endpoint":"https://evil.example/authorize",
@@ -349,7 +348,7 @@ func TestDiscover_RejectsIssuerMismatch(t *testing.T) {
 func TestDiscover_AcceptsMatchingIssuer(t *testing.T) {
 	for _, spelling := range []string{"", "/"} {
 		var srv *httptest.Server
-		srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			_, _ = fmt.Fprintf(w, `{
 				"issuer":"%s%s",
 				"authorization_endpoint":"%s/authorize",
