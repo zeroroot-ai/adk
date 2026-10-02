@@ -119,6 +119,11 @@ gibson target update <uuid> [--name <n>] ...
 gibson target delete <uuid>
 
 # Secrets
+# NOT YET USABLE: nothing serves gibson.secrets.v1 today. The daemon still
+# serves the old gibson.tenant.v1.SecretsService, so every command below fails
+# at the server until the cutover in zeroroot-ai/gibson#531 lands. The commands
+# themselves are correct against the released SDK; they are ahead of it.
+#
 # A secret is a NAME and BYTES. There is no type or format field: the thing that
 # reads a credential is the only party that knows what it needs, so it validates
 # by parsing (ADR-0096). A Target never names a secret — a job declares which

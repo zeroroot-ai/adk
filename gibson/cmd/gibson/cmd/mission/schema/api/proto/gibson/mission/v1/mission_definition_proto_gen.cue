@@ -219,7 +219,8 @@ import (
 	#NODE_TYPE_CONDITION |
 	#NODE_TYPE_PARALLEL |
 	#NODE_TYPE_JOIN |
-	#NODE_TYPE_JOB
+	#NODE_TYPE_JOB |
+	#NODE_TYPE_FOR_EACH
 
 // Sentinel value - must be first
 #NODE_TYPE_UNSPECIFIED: 0
@@ -247,6 +248,13 @@ import (
 // acceptance the spec declares, and closes the job with a verdict.
 #NODE_TYPE_JOB: 7
 
+// ForEach node runs ONE template node once per item in a source set.
+// It is a CONTAINER, so one graph node remains one execution unit and
+// JoinNodeConfig.wait_for keeps meaning "this node", not "one of its
+// instances". A boolean on MissionNode would have made every consumer
+// of a node 1:N and made wait_for ambiguous between one instance and all.
+#NODE_TYPE_FOR_EACH: 8
+
 #NodeType_value: {
 	NODE_TYPE_UNSPECIFIED: 0
 	NODE_TYPE_AGENT:       1
@@ -256,6 +264,7 @@ import (
 	NODE_TYPE_PARALLEL:    5
 	NODE_TYPE_JOIN:        6
 	NODE_TYPE_JOB:         7
+	NODE_TYPE_FOR_EACH:    8
 }
 
 // Language declares the expression language used by mission constructs
@@ -318,6 +327,12 @@ import (
 		// JobConfig for job nodes. Field number 17 because
 		// 16 is the sibling reuse_policy field.
 		jobConfig: #JobNodeConfig @protobuf(17,JobNodeConfig,name=job_config)
+	} | {
+		// ForEachConfig for for_each nodes. Field number 18 as the next free
+		// tag; 13 is NOT free despite looking it, because data_policy is
+		// `= 13 [deprecated = true]` and a field-number scan that expects a
+		// trailing semicolon misses it.
+		forEachConfig: #ForEachNodeConfig @protobuf(18,ForEachNodeConfig,name=for_each_config)
 	}
 
 	// Dependencies lists node IDs that must complete before this node executes
@@ -488,6 +503,49 @@ import (
 
 	// MaxConcurrency limits the number of concurrent executions (0 = unlimited)
 	maxConcurrency?: int32 @protobuf(2,int32,name=max_concurrency)
+}
+
+// ForEachNodeConfig configures a for_each node: ONE template node, run once
+// per item in a source set.
+//
+// The distinction from ParallelNodeConfig is the point. Parallel runs N
+// DIFFERENT declared sub_nodes concurrently. ForEach runs ONE declared node N
+// times, where N is discovered from the source rather than written down. A
+// mission that fans a scan across every target in its target set declares the
+// scan once.
+#ForEachNodeConfig: {
+	// template is the node run once per item.
+	//
+	// It must not itself be a for_each node. That is a submit-time check in
+	// the daemon rather than a protovalidate rule, because protovalidate
+	// cannot express "this nested MissionNode's config is not this variant".
+	template?: #MissionNode @protobuf(1,MissionNode,"(buf.validate.field).required")
+
+	// Source selects what is iterated.
+	#Source:
+		#SOURCE_UNSPECIFIED |
+		#SOURCE_TARGET_SET
+
+	#SOURCE_UNSPECIFIED: 0
+
+	// TARGET_SET is the mission's resolved target set, primary first, in
+	// the order TargetSet() returns.
+	#SOURCE_TARGET_SET: 1
+
+	#Source_value: {
+		SOURCE_UNSPECIFIED: 0
+		SOURCE_TARGET_SET:  1
+	}
+
+	// source is required and must be a named value. Omission is NOT taken to
+	// mean the target set: an unset source is a mission that did not say what
+	// it iterates, and a future second source would silently change what the
+	// omission meant.
+	source?: #Source @protobuf(2,Source,"(buf.validate.field).enum=")
+
+	// max_concurrency limits instances in flight (0 = unlimited), the same
+	// semantics as ParallelNodeConfig.max_concurrency.
+	maxConcurrency?: int32 @protobuf(3,int32,name=max_concurrency,"(buf.validate.field).int32=")
 }
 
 // MergeStrategy declares how a JoinNodeConfig combines results
