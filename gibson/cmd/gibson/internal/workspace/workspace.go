@@ -22,10 +22,8 @@ import (
 
 // Workspace is the parsed workspace.yaml shape.
 type Workspace struct {
-	GibsonURL      string `yaml:"gibson_url"`
-	DefaultKind    string `yaml:"default_kind,omitempty"`
-	DefaultRuntime string `yaml:"default_runtime,omitempty"`
-	Comment        string `yaml:"comment,omitempty"`
+	GibsonURL string `yaml:"gibson_url"`
+	Comment   string `yaml:"comment,omitempty"`
 }
 
 // DefaultGibsonURL is the hosted platform. Resolve returns it when no
