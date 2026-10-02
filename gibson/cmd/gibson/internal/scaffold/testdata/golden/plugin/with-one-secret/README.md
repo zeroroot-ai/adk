@@ -20,10 +20,13 @@ go test ./...
 # 2. Build
 make build
 
-# 3. Register (paste the bootstrap-token from the dashboard)
-gibson component register --token <bootstrap-token>
+# 3. Enrol on first start. The binary does the handshake itself: set two
+#    environment variables and start it once (sdk#128). `gibson component
+#    register` existed only to read component.yaml and was deleted with it.
+export GIBSON_URL=https://<your-platform>
+export GIBSON_BOOTSTRAP_TOKEN=<one-time-token-from-the-dashboard>
 
-# 4. Run
+# 4. Run. The first start enrols; later starts reuse the persisted host key.
 make run
 ```
 

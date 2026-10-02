@@ -16,25 +16,27 @@ import "github.com/spf13/cobra"
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "component",
-		Short: "Scaffold, validate, register, and run Gibson components (agent | tool | plugin | connector)",
+		Short: "Scaffold, validate, build, and run Gibson components (agent | tool | plugin | connector)",
 		Long: `component — kind-aware tooling for the Gibson developer workflow.
 
 Subcommands:
   init      scaffold a new component directory from templates
   generate  regenerate gen/ from taxonomy.yaml and ontology.yaml
   build     generate + validate + go build (one-step developer loop)
-  validate  local schema + proto checks against component.yaml / plugin.yaml
-  register  consume a dashboard-issued enroll_command (no admin RPC auto-mint)
+  validate  local schema + proto checks against a component directory
   run       run the compiled component binary, supervising signals and exit code 75
 
-In a directory containing a component.yaml, --kind is auto-detected
-from the file. Outside such a directory, --kind is required.`,
+--kind is required on validate and run. It used to be auto-detected from
+component.yaml, which no longer exists (ADR-0097): everything else about a
+component is implied by its directory, and the kind is not.
+
+A component enrols itself at boot from GIBSON_URL and
+GIBSON_BOOTSTRAP_TOKEN (sdk#128), so there is no register verb.`,
 	}
 	cmd.AddCommand(initCmd())
 	cmd.AddCommand(generateCmd())
 	cmd.AddCommand(buildCmd())
 	cmd.AddCommand(validateCmd())
-	cmd.AddCommand(registerCmd())
 	cmd.AddCommand(runCmd())
 	return cmd
 }

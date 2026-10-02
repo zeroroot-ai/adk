@@ -14,7 +14,7 @@ func Command() *cobra.Command {
 		Long: `docs — emit developer-facing reference material.
 
 Subcommands:
-  schema    JSON Schema (Draft 2020-12) for component.yaml / plugin.yaml
+  schema    JSON Schema (Draft 2020-12) for plugin.yaml
   cli       the command tree as machine-readable JSON (drives the CLI reference)`,
 	}
 	cmd.AddCommand(schemaCmd())

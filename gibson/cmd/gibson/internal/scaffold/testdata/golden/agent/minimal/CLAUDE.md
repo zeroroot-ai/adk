@@ -12,7 +12,7 @@ This file is the operational shortcut.
 | `make test`                               | Run unit tests |
 | `make proto`                              | Regenerate protos *(tool only)* |
 | `gibson component validate`               | Local schema checks |
-| `gibson component register --token … `    | First-time enrollment (see AGENTS.md) |
+| `GIBSON_URL` + `GIBSON_BOOTSTRAP_TOKEN` | First-time enrollment, done by the binary on start (see AGENTS.md) |
 | `gibson component run`                    | Run the compiled binary |
 | `gibson inspect`                          | Show this principal's effective grants |
 

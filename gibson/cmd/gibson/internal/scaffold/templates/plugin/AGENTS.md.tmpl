@@ -92,8 +92,10 @@ Every component kind enrolls through the one capability-grant mechanism
 
 1. **Mint** — the dashboard's Register wizard uploads `plugin.yaml` and returns
    a single-use bootstrap token.
-2. **Register** — `gibson component register --token <bootstrap-token>`.
-3. **Run** — `make build && gibson component run`.
+2. **Enrol** — set `GIBSON_URL` and `GIBSON_BOOTSTRAP_TOKEN` and start the
+   binary. `plugin.Serve` does the handshake itself; there is no CLI step
+   (sdk#128).
+3. **Run** — `make build && gibson component run --kind plugin`.
 
 ## Do not
 

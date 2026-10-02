@@ -12,10 +12,14 @@ list). What follows is the four-command quickstart.
 # 1. Build
 make build
 
-# 2. Register (paste the bootstrap token from the dashboard's Register wizard)
-gibson component register --token <bootstrap-token>
+# 2. Enrol on first start. The binary does the handshake itself: set two
+#    environment variables and start it once (sdk#128). `gibson component
+#    register` existed only to read component.yaml and was deleted with it.
+export GIBSON_URL=https://<your-platform>
+export GIBSON_BOOTSTRAP_TOKEN=<one-time-token-from-the-dashboard>
 
-# 3. Run (reads the runtime credential from ~/.gibson/agent/)
+# 3. Run. The first start enrols; later starts reuse the runtime credential
+#    in ~/.gibson/agent/ and never read the token.
 make run
 ```
 

@@ -86,9 +86,10 @@ func agentEnrollCmd() *cobra.Command {
 		Long: `Call AgentIdentityService.CreateAgentIdentity to provision a new
 machine identity, authenticated as you (run ` + "`gibson login`" + ` first).
 The one-time bootstrap token is printed to stdout — store it immediately;
-it cannot be retrieved again. Run the printed enroll_command (or
-` + "`gibson component register --token`" + `) to complete the capability-grant
-handshake (ADR-0045). The same flow serves every component kind.`,
+it cannot be retrieved again. Pass it to the component as
+GIBSON_BOOTSTRAP_TOKEN and start the binary once: it completes the
+capability-grant handshake itself (ADR-0045, sdk#128). The same flow serves
+every component kind.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			principalKind, err := parsePrincipalKind(kind)
@@ -117,9 +118,9 @@ handshake (ADR-0045). The same flow serves every component kind.`,
 			w := cmd.OutOrStdout()
 			fmt.Fprintf(w, "principal_id:  %s\n", resp.GetPrincipalId())
 			// Capability-grant bootstrap token (ADR-0045): the one-time credential
-			// `gibson component register --token` presents to the CG register
-			// endpoint for first registration. It is the sole enrollment credential
-			// for every component kind (gibson#670).
+			// the component itself presents to the CG register endpoint on its first
+			// start, read from GIBSON_BOOTSTRAP_TOKEN (sdk#128). It is the sole
+			// enrollment credential for every component kind (gibson#670).
 			if bt := resp.GetBootstrapToken(); bt != "" {
 				fmt.Fprintf(w, "bootstrap_token: %s\n", bt)
 			}

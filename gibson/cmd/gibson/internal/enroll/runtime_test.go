@@ -26,11 +26,15 @@ func sampleCredential(t *testing.T) capabilitygrant.RuntimeCredential {
 	}
 }
 
+// The writer is the SDK's, not a wrapper in this package. enroll only
+// re-exported it, and that re-export died with `gibson component register`
+// (adk#90) — deadcode caught it. The reader half stays, because `gibson inspect`
+// uses it.
 func TestRuntimeInstall_SaveResolveRoundTrip(t *testing.T) {
 	t.Setenv("GIBSON_HOME", t.TempDir())
 	rc := sampleCredential(t)
 
-	path, err := enroll.SaveRuntimeInstall("agent", "hello", enroll.RuntimeInstall{
+	path, err := capabilitygrant.SaveRuntimeInstall("agent", "hello", enroll.RuntimeInstall{
 		GibsonURL:  "https://daemon.example",
 		Credential: rc,
 	})
@@ -79,9 +83,9 @@ func TestResolveRuntimeCredential_EnvWithoutURLFails(t *testing.T) {
 func TestListInstalls(t *testing.T) {
 	t.Setenv("GIBSON_HOME", t.TempDir())
 	rc := sampleCredential(t)
-	_, err := enroll.SaveRuntimeInstall("agent", "a1", enroll.RuntimeInstall{GibsonURL: "u", Credential: rc})
+	_, err := capabilitygrant.SaveRuntimeInstall("agent", "a1", enroll.RuntimeInstall{GibsonURL: "u", Credential: rc})
 	require.NoError(t, err)
-	_, err = enroll.SaveRuntimeInstall("tool", "t1", enroll.RuntimeInstall{GibsonURL: "u", Credential: rc})
+	_, err = capabilitygrant.SaveRuntimeInstall("tool", "t1", enroll.RuntimeInstall{GibsonURL: "u", Credential: rc})
 	require.NoError(t, err)
 
 	installs, err := enroll.ListInstalls()

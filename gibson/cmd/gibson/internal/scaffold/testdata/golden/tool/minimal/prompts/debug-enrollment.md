@@ -4,8 +4,9 @@ Tool enrollment is **identical to agent and plugin enrollment** — the
 one capability-grant (CG) handshake every component kind shares (docs
 ADR-0045) — except the on-disk files live under `~/.gibson/tool/`.
 
-`gibson component register --token <bootstrap-token>` runs CG Bootstrap →
-Discover → Register; the error message names which one failed.
+Starting the binary with `GIBSON_URL` and `GIBSON_BOOTSTRAP_TOKEN` set runs CG
+Bootstrap → Discover → Register; the error message names which one failed. There
+is no CLI enrolment step: the binary enrols itself (sdk#128).
 
 ## 1. Bootstrap
 

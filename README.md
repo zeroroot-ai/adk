@@ -79,12 +79,15 @@ the directory:
    confirm field 100 is wired correctly and `main.go` parses.
 7. **Runs `make build`** — produces the binary.
 
-You then paste the one-time bootstrap token from the dashboard's
-Register wizard (the same capability-grant handshake for every kind):
+You then give the component the one-time bootstrap token from the
+dashboard's Register wizard and start it once. The binary runs the
+capability-grant handshake itself — the same one for every kind — so there
+is no CLI enrolment step:
 
 ```sh
-gibson component register --token <bootstrap-token>
-gibson component run
+export GIBSON_URL=https://<your-platform>
+export GIBSON_BOOTSTRAP_TOKEN=<bootstrap-token>
+gibson component run --kind tool
 gibson inspect    # shows the principal's effective FGA grants
 ```
 
@@ -97,11 +100,10 @@ no `kubectl apply`, no `helm install`, no writes against `~/.gibson/`.
 ```
 gibson init                              # workspace bootstrap
 gibson component init <name> --kind …    # scaffold (agent | tool | plugin)
-gibson component validate                # local schema + proto checks
-gibson component register --token <tok>  # capability-grant enrollment handshake
-gibson component run                     # supervise the compiled binary
+gibson component validate --kind …       # local schema + proto checks
+gibson component run --kind …             # supervise the compiled binary
 gibson inspect                           # who am I + my grants
-gibson docs schema [component-yaml|plugin-yaml]
+gibson docs schema [plugin-yaml]
                                          # JSON Schema for editors / AI coders
 
 # Mission authoring
@@ -172,11 +174,12 @@ kind cluster — needs it, or the TLS handshake fails before the command runs.
 The CLI **does not** call admin RPCs. Machine identities are provisioned
 via `gibson agent enroll` (which calls
 `AgentIdentityService.CreateAgentIdentity`); it returns a one-time
-bootstrap token. `gibson component register --token <tok>` runs the
-capability-grant handshake (ADR-0045) and persists the runtime
-credential at `~/.gibson/<kind>/<name>.runtime.json` (+ `.host_key`) for
-use by `gibson inspect` and `gibson component run`. The same mechanism
-serves every component kind — only the FGA policy differs.
+bootstrap token. The component presents it itself on its first start, read
+from `GIBSON_BOOTSTRAP_TOKEN` (sdk#128): the SDK runs the capability-grant
+handshake (ADR-0045) and persists the runtime credential at
+`~/.gibson/<kind>/<name>.runtime.json` (+ `.host_key`) for use by
+`gibson inspect` and `gibson component run`. The same mechanism serves every
+component kind — only the FGA policy differs.
 
 There are no back-compat aliases (no `gibson plugin enroll` etc.).
 Pre-spec callers update Makefiles and CI; the migration table is in
