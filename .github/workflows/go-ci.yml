@@ -273,3 +273,127 @@ jobs:
   no-monorepo-shortcuts:
     if: github.event_name == 'pull_request'
     uses: zeroroot-ai/.github/.github/workflows/no-monorepo-shortcuts.yml@c06ea08fddecc754ac6faf06f9fc0511d13cb955 # v0.5.2
+
+  # ---------------------------------------------------------------------------
+  # templates-check — moved in from templates.yml so ci-required covers it.
+  # ---------------------------------------------------------------------------
+  # `needs:` cannot cross workflow files, so a gate in its own file cannot be
+  # aggregated. It ran on every PR and blocked nothing. Moving it does NOT
+  # rename its check run: a check run's context is the JOB name, so
+  # `templates-check` stays `templates-check`.
+  #
+  # It lost `push: main` and `workflow_dispatch` in the move. Neither was a
+  # gate: merge_group is the authoritative pre-merge run (ADR-0060), and a
+  # post-merge repeat of a PR gate reports after the decision is made.
+  templates-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: gibson/go.mod
+          cache: true
+
+      - name: Build CLI
+        run: cd gibson && go build -o bin/gibson ./cmd/gibson
+
+      - name: Diagnostic — build environment identity
+        # Prints the knobs that determine protojson output stability so we
+        # can compare local vs CI when whitespace parity issues resurface.
+        # Root cause of adk#33: protojson/internal/detrand seeds from a hash
+        # of the binary; different builds → different seeds → different spacing.
+        # Fix is in render.go (compact marshal + json.Indent); this step
+        # provides a paper trail if the problem ever recurs.
+        run: |
+          echo "=== go version ==="
+          go version
+          echo "=== GOTOOLCHAIN ==="
+          go env GOTOOLCHAIN
+          echo "=== GOMODCACHE ==="
+          go env GOMODCACHE
+          echo "=== GOPROXY ==="
+          go env GOPROXY
+          echo "=== protobuf sha in go.sum ==="
+          grep "^google.golang.org/protobuf v1" gibson/go.sum
+          echo "=== binary sha256 ==="
+          sha256sum gibson/bin/gibson
+          echo "=== first rendered template (first 20 lines) ==="
+          ./gibson/bin/gibson mission render templates/recon/template.cue 2>&1 | head -20
+
+      - name: Run templates-check
+        # Builds the gibson CLI, then vets each template.cue through
+        # `gibson mission validate` (schema-aware, single code path),
+        # regenerates template.json via `gibson mission render`,
+        # and asserts no drift.
+        # Spec: mission-authoring-cue Requirement 9.
+        run: make templates-check
+
+  # ---------------------------------------------------------------------------
+  # ci-required — THE single required status check for this repo.
+  # ---------------------------------------------------------------------------
+  # adk was the only one of setec / sdk / gibson-executor / adk WITHOUT an
+  # aggregator. Measured in zeroroot-ai/.github rulesets/repo/*.json: the other
+  # three require `ci-required`, and adk required exactly three contexts —
+  # policy-guards, brand-guard and link-check. So fourteen checks ran and three
+  # could stop a merge. `deadcode`, `fast / go-ci (fast)`, `lint (new code)`,
+  # `check-fmt`, `check-cue-fresh` and `templates-check` could all report red and
+  # the PR would still merge.
+  #
+  # `deadcode` is the sharpest case: adk#82 built it carefully, with a pinned
+  # x/tools version, an assertion that the pinned binary is the one that ran, and
+  # a mutation-tested fixture — and nothing required it to pass. The same class
+  # already merged a red lint in gibson-executor#369 and a red validate in
+  # deploy#1526.
+  #
+  # Widening the required LIST is not the fix: that list lives in a different
+  # repo from the workflows it names, so it falls behind every time a gate is
+  # added here. One job needs: every gate, and the ruleset requires that one job.
+  # Adding a gate means adding it to needs: in the same PR, and
+  # ci-required-selftest's coverage check fails when that is forgotten.
+  #
+  # if: always() is load-bearing. GitHub skips a needs: job when ANY dependency
+  # is skipped, so without it the aggregator vanishes exactly when a gate was
+  # skipped — and an ABSENT required context freezes merge-queue entry instead of
+  # failing it. See scripts/ci-required-gate.sh for why the results must then be
+  # read rather than assumed.
+  ci-required:
+    name: ci-required
+    if: always()
+    needs:
+      - fast
+      - heavy
+      - check-fmt
+      - check-cue-fresh
+      - lint
+      - deadcode
+      - no-monorepo-shortcuts
+      - templates-check
+      # The selftest is a dependency, not a bystander. ci-required is the one
+      # thing standing between a red gate and main, so a regression in the
+      # aggregation logic itself has to block too.
+      - ci-required-selftest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Evaluate every gate result
+        env:
+          GATE_RESULTS: ${{ toJSON(needs) }}
+        run: bash scripts/ci-required-gate.sh
+
+  # ci-required-selftest proves the aggregation logic can fail, and that the
+  # needs: list above covers every gate job in this file. A gate added without
+  # being listed is the failure mode the coverage check exists for.
+  ci-required-selftest:
+    name: ci-required-selftest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Mutation-test the aggregation logic
+        run: bash scripts/__tests__/ci-required-gate.test.sh
+
+      - name: Every gate job is in ci-required's needs
+        run: bash scripts/check-ci-required-coverage.sh .github/workflows/go-ci.yml
