@@ -45,7 +45,8 @@ spec:
 
 `GIBSON_AGENT_KEY` is the base64(JSON) runtime credential — the
 `.credential` object from `~/.gibson/agent/{{.Name}}.runtime.json` after
-a local `gibson component register`, or one minted headless for CI. The
+a local first start with `GIBSON_BOOTSTRAP_TOKEN` set, or one minted headless
+for CI. The
 Secret holds it under `agent_key`; never commit it. This is the same
 capability-grant credential every component kind uses — only the FGA
 policy on the principal differs.

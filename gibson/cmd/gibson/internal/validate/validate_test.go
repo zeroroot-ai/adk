@@ -11,74 +11,87 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 
-	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/component"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/validate"
 )
 
-// saveComponentYAML marshals c and writes it to path as the test fixture
-// component.yaml the validate package reads.
-func saveComponentYAML(t *testing.T, path string, c *component.Component) {
+// These tests used to write a component.yaml fixture into a random temp
+// directory, because the kind and the component name were read from the file.
+// With the file gone (ADR-0097, adk#90) the directory IS the fixture: it is
+// named after the component, and the kind is passed in. So every case now
+// creates a NAMED directory, which is also the shape a developer's checkout has.
+
+// componentDir creates <t.TempDir()>/<name>, which is what layout.Name reads the
+// component name from.
+func componentDir(t *testing.T, name string) string {
 	t.Helper()
-	b, err := yaml.Marshal(c)
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(path, b, 0o644))
+	dir := filepath.Join(t.TempDir(), name)
+	// #nosec G301 -- a test fixture directory under t.TempDir(), which the test
+	// framework removes; the mode only has to let this process traverse it.
+	require.NoError(t, os.MkdirAll(dir, 0o750))
+	return dir
 }
 
-func writeAgent(t *testing.T, dir, name string) {
+func writeMainGo(t *testing.T, dir string) {
 	t.Helper()
-	c := &component.Component{
-		APIVersion: component.APIVersionV1,
-		Kind:       component.KindAgent,
-		Metadata:   component.ComponentMetadata{Name: name, Version: "0.1.0"},
-	}
-	saveComponentYAML(t, filepath.Join(dir, "component.yaml"), c)
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n"), 0o644))
 }
 
 func TestRun_AgentClean(t *testing.T) {
-	dir := t.TempDir()
-	writeAgent(t, dir, "demo")
+	dir := componentDir(t, "demo")
+	writeMainGo(t, dir)
 
-	r, err := validate.Run(dir, "")
+	r, err := validate.Run(dir, validate.KindAgent)
 	require.NoError(t, err)
 	assert.False(t, r.HasErrors(), "agent should be clean: %+v", r.Errors)
 }
 
 func TestRun_AgentMissingMainGo(t *testing.T) {
-	dir := t.TempDir()
-	c := &component.Component{
-		APIVersion: component.APIVersionV1,
-		Kind:       component.KindAgent,
-		Metadata:   component.ComponentMetadata{Name: "demo", Version: "0.1.0"},
-	}
-	saveComponentYAML(t, filepath.Join(dir, "component.yaml"), c)
+	dir := componentDir(t, "demo")
 
-	r, err := validate.Run(dir, "")
+	r, err := validate.Run(dir, validate.KindAgent)
 	require.NoError(t, err)
 	assert.True(t, r.HasErrors())
 	assert.Contains(t, r.Errors[0].Message, "main.go not found")
 }
 
-func TestRun_KindMismatch(t *testing.T) {
-	dir := t.TempDir()
-	writeAgent(t, dir, "demo")
+// TestRun_KindIsRequired replaces TestRun_KindMismatch. There is no longer a
+// declared kind to disagree with, so the failure mode moved: an absent kind is a
+// setup error, not a finding about the component. Reporting it as a finding would
+// say the component is wrong when the invocation is.
+func TestRun_KindIsRequired(t *testing.T) {
+	dir := componentDir(t, "demo")
+	writeMainGo(t, dir)
 
-	r, err := validate.Run(dir, component.KindTool)
-	require.NoError(t, err)
-	assert.True(t, r.HasErrors())
-	assert.Contains(t, r.Errors[0].Message, "does not match")
+	_, err := validate.Run(dir, "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--kind is required")
+	assert.Contains(t, err.Error(), "component.yaml", "the error should say where the kind used to come from")
+}
+
+func TestRun_UnknownKindIsASetupError(t *testing.T) {
+	dir := componentDir(t, "demo")
+	writeMainGo(t, dir)
+
+	_, err := validate.Run(dir, "sidecar")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "agent|tool|plugin")
+}
+
+// TestRun_UnusableDirectoryName. The component name is the directory name, so a
+// directory that cannot be a DNS label cannot be a component — and saying so is
+// better than deriving a proto path nobody will ever have.
+func TestRun_UnusableDirectoryName(t *testing.T) {
+	dir := componentDir(t, "Demo_Tool")
+	writeMainGo(t, dir)
+
+	_, err := validate.Run(dir, validate.KindTool)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not a usable component name")
 }
 
 func TestRun_PluginCleanManifest(t *testing.T) {
-	dir := t.TempDir()
-	c := &component.Component{
-		APIVersion: component.APIVersionV1,
-		Kind:       component.KindPlugin,
-		Metadata:   component.ComponentMetadata{Name: "demo-plugin", Version: "0.1.0"},
-	}
-	saveComponentYAML(t, filepath.Join(dir, "component.yaml"), c)
+	dir := componentDir(t, "demo-plugin")
 
 	manifest := `apiVersion: plugin.gibson.zeroroot.ai/v1
 kind: Plugin
@@ -93,31 +106,44 @@ spec:
 `
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "plugin.yaml"), []byte(manifest), 0o644))
 
-	r, err := validate.Run(dir, "")
+	r, err := validate.Run(dir, validate.KindPlugin)
 	require.NoError(t, err)
 	assert.False(t, r.HasErrors(), "plugin should be clean: %+v", r.Errors)
 }
 
-func TestRun_ToolMissingField100(t *testing.T) {
-	dir := t.TempDir()
-	c := &component.Component{
-		APIVersion: component.APIVersionV1,
-		Kind:       component.KindTool,
-		Metadata:   component.ComponentMetadata{Name: "demo-tool", Version: "0.1.0"},
-	}
-	saveComponentYAML(t, filepath.Join(dir, "component.yaml"), c)
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n"), 0o644))
+// TestRun_PluginMissingManifest. plugin.yaml is found by convention now, not at
+// spec.manifest_path, so the message must name the path it looked at.
+func TestRun_PluginMissingManifest(t *testing.T) {
+	dir := componentDir(t, "demo-plugin")
 
-	protoDir := filepath.Join(dir, "api", "proto", "gibson", "tools", "demotool", "v1")
+	r, err := validate.Run(dir, validate.KindPlugin)
+	require.NoError(t, err)
+	require.True(t, r.HasErrors())
+	assert.Contains(t, r.Errors[0].Message, "plugin.yaml not found")
+	assert.Contains(t, r.Errors[0].Path, "plugin.yaml")
+}
+
+// writeToolProto writes a tool's proto at the path derived from the directory
+// name: api/proto/gibson/tools/<name-without-hyphens>/v1/<same>.proto.
+func writeToolProto(t *testing.T, dir, pkg, body string) {
+	t.Helper()
+	protoDir := filepath.Join(dir, "api", "proto", "gibson", "tools", pkg, "v1")
 	require.NoError(t, os.MkdirAll(protoDir, 0o755))
-	bad := `syntax = "proto3";
+	// #nosec G306 -- a .proto fixture under t.TempDir(); nothing reads it but
+	// this test and the validator it drives.
+	require.NoError(t, os.WriteFile(filepath.Join(protoDir, pkg+".proto"), []byte(body), 0o600))
+}
+
+func TestRun_ToolMissingField100(t *testing.T) {
+	dir := componentDir(t, "demo-tool")
+	writeMainGo(t, dir)
+	writeToolProto(t, dir, "demotool", `syntax = "proto3";
 package gibson.tools.demo.v1;
 message DemoToolRequest { string target = 1; }
 message DemoToolResponse { string raw = 1; }
-`
-	require.NoError(t, os.WriteFile(filepath.Join(protoDir, "demotool.proto"), []byte(bad), 0o644))
+`)
 
-	r, err := validate.Run(dir, "")
+	r, err := validate.Run(dir, validate.KindTool)
 	require.NoError(t, err)
 	assert.True(t, r.HasErrors())
 	found := false
@@ -130,18 +156,9 @@ message DemoToolResponse { string raw = 1; }
 }
 
 func TestRun_ToolWithField100Passes(t *testing.T) {
-	dir := t.TempDir()
-	c := &component.Component{
-		APIVersion: component.APIVersionV1,
-		Kind:       component.KindTool,
-		Metadata:   component.ComponentMetadata{Name: "demo-tool", Version: "0.1.0"},
-	}
-	saveComponentYAML(t, filepath.Join(dir, "component.yaml"), c)
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n"), 0o644))
-
-	protoDir := filepath.Join(dir, "api", "proto", "gibson", "tools", "demotool", "v1")
-	require.NoError(t, os.MkdirAll(protoDir, 0o755))
-	good := `syntax = "proto3";
+	dir := componentDir(t, "demo-tool")
+	writeMainGo(t, dir)
+	writeToolProto(t, dir, "demotool", `syntax = "proto3";
 package gibson.tools.demo.v1;
 import "gibson/graphrag/v1/graphrag.proto";
 message DemoToolRequest { string target = 1; }
@@ -149,13 +166,32 @@ message DemoToolResponse {
   string raw = 1;
   gibson.graphrag.v1.DiscoveryResult discovery = 100;
 }
-`
-	require.NoError(t, os.WriteFile(filepath.Join(protoDir, "demotool.proto"), []byte(good), 0o644))
+`)
 
-	r, err := validate.Run(dir, "")
+	r, err := validate.Run(dir, validate.KindTool)
 	require.NoError(t, err)
 	// Allow buf-not-on-PATH to remain a warning; field 100 must not be an error.
 	for _, e := range r.Errors {
 		assert.NotContains(t, e.Message, "field 100", "field 100 must validate cleanly when present")
+	}
+}
+
+// TestRun_ToolProtoPathComesFromTheDirectory is the link the conventions
+// introduce: the proto path used to be derived from metadata.name in the file,
+// and is now derived from the directory. A tool whose directory is named
+// correctly must find its proto, and this fails if the two derivations diverge.
+func TestRun_ToolProtoPathComesFromTheDirectory(t *testing.T) {
+	dir := componentDir(t, "a-b-c")
+	writeMainGo(t, dir)
+	writeToolProto(t, dir, "abc", `syntax = "proto3";
+package gibson.tools.abc.v1;
+message Resp { gibson.graphrag.v1.DiscoveryResult discovery = 100; }
+`)
+
+	r, err := validate.Run(dir, validate.KindTool)
+	require.NoError(t, err)
+	for _, e := range r.Errors {
+		assert.NotContains(t, e.Message, "tool proto not found",
+			"the proto path must come from the directory name: %+v", r.Errors)
 	}
 }

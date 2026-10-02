@@ -34,7 +34,7 @@ Subcommands:
   login      authenticate the CLI against the platform (device flow)
   logout     end the CLI session and remove stored credentials
   init       initialize a Gibson workspace (.gibson/workspace.yaml)
-  component  scaffold, validate, register, run components (agent | tool | plugin)
+  component  scaffold, validate, build, run components (agent | tool | plugin)
   connector  enable and manage tenant connectors (catalog | enable | list | disable)
   docs       emit machine-readable docs (JSON Schemas, etc.)
   inspect    show what this principal can do (calls WhoAmI)

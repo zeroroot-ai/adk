@@ -14,13 +14,16 @@ uploads its `plugin.yaml` manifest at mint time.
    `plugin_principal`, writes FGA `can_resolve` tuples for every
    declared secret, and returns a single-use bootstrap token (24h
    TTL).
-3. Operator runs:
+3. Operator starts the binary once with the token in the environment:
    ```sh
-   gibson component register --token <bootstrap-token>
+   export GIBSON_URL=https://<your-platform>
+   export GIBSON_BOOTSTRAP_TOKEN=<bootstrap-token>
+   gibson component run --kind plugin
    ```
-4. The CLI runs `capabilitygrant.Bootstrap → Discover → Register` and
+4. `plugin.Serve` runs `capabilitygrant.Bootstrap → Discover → Register` and
    persists `~/.gibson/plugin/{{.Name}}.host_key` plus
-   `~/.gibson/plugin/{{.Name}}.runtime.json` (both mode 0600).
+   `~/.gibson/plugin/{{.Name}}.runtime.json` (both mode 0600). A restart needs
+   no token: the host key takes over (sdk#128).
 
 ## Step-by-step failure modes
 

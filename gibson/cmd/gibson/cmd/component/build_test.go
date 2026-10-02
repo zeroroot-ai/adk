@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/validate"
 )
 
 // fakeTools puts stub buf and go binaries first on PATH. Both append their
@@ -59,7 +61,7 @@ func TestBuildGeneratesProtoBeforeModTidy(t *testing.T) {
 	log := fakeTools(t, true)
 	dir := scaffoldTool(t)
 
-	if err := runBuild(dir); err != nil {
+	if err := runBuild(dir, validate.KindTool); err != nil {
 		t.Fatalf("runBuild: %v", err)
 	}
 	calls := readLog(t, log)
@@ -127,7 +129,7 @@ func TestBuildStopsWithoutBuf(t *testing.T) {
 	log := fakeTools(t, false)
 	dir := scaffoldTool(t)
 
-	err := runBuild(dir)
+	err := runBuild(dir, validate.KindTool)
 	if err == nil || !strings.Contains(err.Error(), "make proto") {
 		t.Fatalf("err = %v, want a message naming make proto", err)
 	}

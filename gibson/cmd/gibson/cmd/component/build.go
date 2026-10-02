@@ -14,11 +14,16 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/validate"
 )
 
 // buildCmd returns `gibson component build`.
 func buildCmd() *cobra.Command {
-	var dir string
+	var (
+		dir  string
+		kind string
+	)
 
 	cmd := &cobra.Command{
 		Use:   "build",
@@ -26,7 +31,7 @@ func buildCmd() *cobra.Command {
 		Long: `build is the one-step developer loop command:
 
   1. generate  — regenerate gen/ from taxonomy.yaml + ontology.yaml
-  2. validate  — run all local checks (component.yaml, proto field 100,
+  2. validate  — run all local checks (main.go parses, proto field 100,
                  buf lint, ontology YAML parse)
   3. proto     — run buf generate when buf.gen.yaml exists and api/gen
                  is missing or older than api/proto (needs buf,
@@ -44,14 +49,18 @@ Exit codes:
   0  build succeeded
   1  generate / validate / compile error (details on stderr)
 
+--kind is required, because step 2 is kind-aware and the kind used to come
+from component.yaml, which no longer exists (ADR-0097).
+
 Examples:
-  gibson component build
-  gibson component build --dir ./my-tool`,
+  gibson component build --kind tool
+  gibson component build --kind plugin --dir ./my-plugin`,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runBuild(dir)
+			return runBuild(dir, kind)
 		},
 	}
-	cmd.Flags().StringVarP(&dir, "dir", "d", ".", "component directory (containing component.yaml)")
+	cmd.Flags().StringVarP(&dir, "dir", "d", ".", "component directory")
+	cmd.Flags().StringVar(&kind, "kind", "", "component kind: "+strings.Join(validate.Kinds(), " | ")+" (required)")
 	return cmd
 }
 
@@ -60,7 +69,7 @@ Examples:
 //  2. validate (all local checks)
 //  3. proto bindings (buf generate, when needed)
 //  4. go build ./...
-func runBuild(dir string) error {
+func runBuild(dir, kind string) error {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return fmt.Errorf("component build: resolve dir: %w", err)
@@ -74,7 +83,7 @@ func runBuild(dir string) error {
 
 	// Step 2 — validate.
 	fmt.Println("component build: running validate...")
-	if err := runValidate(abs, "" /*auto-detect kind*/); err != nil {
+	if err := runValidate(abs, kind); err != nil {
 		return err
 	}
 

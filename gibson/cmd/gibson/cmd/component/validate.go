@@ -6,10 +6,10 @@ package component
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
-	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/component"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/validate"
 )
 
@@ -21,36 +21,43 @@ func validateCmd() *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "validate",
-		Short: "Local schema + proto checks against component.yaml / plugin.yaml",
+		Short: "Local schema + proto checks against a component directory",
 		Long: `validate runs kind-aware local checks against the component in --dir
-(default: current directory). The kind is auto-detected from
-component.yaml; pass --kind to override.
+(default: current directory).
 
-  agent:  component.yaml shape, main.go parses
+--kind is required. It used to be auto-detected from component.yaml, which
+no longer exists (ADR-0097): the kind is the only thing a component
+directory cannot imply, so it is the one thing you still state.
+
+  agent:  main.go is present and parses
   tool:   agent checks, plus proto field 100 = DiscoveryResult, plus
           buf lint when buf is on PATH
-  plugin: agent checks, plus the SDK manifest validator
+  plugin: agent checks, plus the SDK manifest validator on plugin.yaml
+
+Paths come from the directory rather than from a manifest: main.go at the
+root, plugin.yaml at the root, and the tool proto at
+api/proto/gibson/tools/<name>/v1/<name>.proto, with <name> the directory
+name minus hyphens.
 
 Exit codes:
   0  no errors
   2  validation errors (one or more findings printed to stderr)
-  1  I/O / setup error (e.g. component.yaml missing)
+  1  I/O / setup error (e.g. --kind missing, or an unusable directory name)
 
 Examples:
-  gibson component validate
-  gibson component validate --dir ./my-tool
-  gibson component validate --kind plugin   # override auto-detect`,
+  gibson component validate --kind tool
+  gibson component validate --kind plugin --dir ./my-plugin`,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runValidate(dir, kind)
 		},
 	}
-	cmd.Flags().StringVarP(&dir, "dir", "d", ".", "component directory (containing component.yaml)")
-	cmd.Flags().StringVar(&kind, "kind", "", "override kind: agent | tool | plugin")
+	cmd.Flags().StringVarP(&dir, "dir", "d", ".", "component directory")
+	cmd.Flags().StringVar(&kind, "kind", "", "component kind: "+strings.Join(validate.Kinds(), " | ")+" (required)")
 	return cmd
 }
 
 func runValidate(dir, kindStr string) error {
-	report, err := validate.Run(dir, component.Kind(kindStr))
+	report, err := validate.Run(dir, kindStr)
 	if err != nil {
 		return err // I/O / setup error -> exit 1
 	}

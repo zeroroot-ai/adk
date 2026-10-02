@@ -27,7 +27,7 @@ import (
 	"github.com/zeroroot-ai/sdk/plugin/manifest"
 	"github.com/zeroroot-ai/sdk/taxonomy"
 
-	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/component"
+	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/layout"
 )
 
 // Issue is a single validation finding.
@@ -69,30 +69,47 @@ func (r *Report) addWarning(path, msg string) {
 // The first return value is always non-nil. The error return is set
 // only for I/O issues that prevent validation from running (e.g.
 // component.yaml missing). Validation findings live in the report.
-func Run(dir string, kind component.Kind) (*Report, error) {
+// The three component kinds. They lived on the component package, which existed
+// to parse component.yaml; with the file gone the vocabulary belongs with the
+// checks that branch on it.
+const (
+	KindAgent  = "agent"
+	KindTool   = "tool"
+	KindPlugin = "plugin"
+)
+
+// Kinds returns the accepted kinds, in help-text order.
+func Kinds() []string { return []string{KindAgent, KindTool, KindPlugin} }
+
+// Run executes the kind-aware local checks for the component in dir and returns
+// a Report. A non-nil error is a setup failure (no kind, an unusable directory
+// name) rather than a finding about the component; findings are in the Report.
+func Run(dir, kind string) (*Report, error) {
 	r := &Report{}
 
-	componentYAMLPath := filepath.Join(dir, "component.yaml")
-	c, err := component.Load(componentYAMLPath)
+	// The kind used to come from component.yaml, which is gone (adk#90). It is
+	// the one thing a directory cannot imply, so it is a required argument and
+	// an empty one is a setup error rather than a finding: there is no component
+	// to report findings about yet.
+	if kind == "" {
+		return r, errors.New("validate: --kind is required (agent | tool | plugin); " +
+			"it used to be read from component.yaml, which no longer exists")
+	}
+
+	name, err := layout.Name(dir)
 	if err != nil {
 		return r, fmt.Errorf("validate: %w", err)
 	}
-	if kind == "" {
-		kind = c.Kind
-	} else if kind != c.Kind {
-		r.addError("component.yaml", fmt.Sprintf("--kind=%s does not match component.yaml kind=%s", kind, c.Kind))
-		return r, nil
-	}
 
 	switch kind {
-	case component.KindAgent:
-		validateAgent(dir, c, r)
-	case component.KindTool:
-		validateTool(dir, c, r)
-	case component.KindPlugin:
-		validatePlugin(dir, c, r)
+	case KindAgent:
+		validateAgent(dir, r)
+	case KindTool:
+		validateTool(dir, name, r)
+	case KindPlugin:
+		validatePlugin(dir, r)
 	default:
-		r.addError("component.yaml", fmt.Sprintf("unknown kind %q", kind))
+		return r, fmt.Errorf("validate: --kind must be one of agent|tool|plugin, got %q", kind)
 	}
 
 	// Validate ontology.yaml if present (all kinds support it).
@@ -102,8 +119,8 @@ func Run(dir string, kind component.Kind) (*Report, error) {
 }
 
 // validateAgent runs structural checks for agent kind.
-func validateAgent(dir string, c *component.Component, r *Report) {
-	mainGo := filepath.Join(dir, c.EffectiveMainPath(), "main.go")
+func validateAgent(dir string, r *Report) {
+	mainGo := layout.MainGo(dir)
 	if _, err := os.Stat(mainGo); err != nil {
 		r.addError(mainGo, "main.go not found")
 		return
@@ -115,13 +132,13 @@ func validateAgent(dir string, c *component.Component, r *Report) {
 }
 
 // validateTool runs validateAgent's checks plus proto / buf checks.
-func validateTool(dir string, c *component.Component, r *Report) {
-	validateAgent(dir, c, r)
+func validateTool(dir, name string, r *Report) {
+	validateAgent(dir, r)
 
 	// Locate the tool's primary proto file. It lives at a path mirroring
 	// its proto package (buf STANDARD's PACKAGE_DIRECTORY_MATCH), with a
 	// hyphen-free filename derived from the component name.
-	pkg := protoPkg(c.Metadata.Name)
+	pkg := layout.ProtoPkg(name)
 	protoPath := filepath.Join(dir, "api", "proto", "gibson", "tools", pkg, "v1", pkg+".proto")
 	if _, err := os.Stat(protoPath); err != nil {
 		r.addError(protoPath, "tool proto not found at expected path api/proto/gibson/tools/<pkg>/v1/<pkg>.proto")
@@ -152,10 +169,10 @@ func validateTool(dir string, c *component.Component, r *Report) {
 }
 
 // validatePlugin delegates to the SDK manifest validator.
-func validatePlugin(dir string, c *component.Component, r *Report) {
-	manifestPath := filepath.Join(dir, c.EffectiveManifestPath())
+func validatePlugin(dir string, r *Report) {
+	manifestPath := layout.PluginManifest(dir)
 	if _, err := os.Stat(manifestPath); err != nil {
-		r.addError(manifestPath, "plugin.yaml not found at spec.manifest_path")
+		r.addError(manifestPath, "plugin.yaml not found")
 		return
 	}
 	_, err := manifest.Load(manifestPath)
@@ -168,13 +185,6 @@ func validatePlugin(dir string, c *component.Component, r *Report) {
 	}
 	// I/O or parse error.
 	r.addError(manifestPath, fmt.Sprintf("manifest load: %v", err))
-}
-
-// protoPkg flattens a DNS-label component name to the hyphen-free token used
-// for its proto package segment and file path. It must match
-// scaffold.ScaffoldInput.ProtoPkg ("debug-tool" → "debugtool").
-func protoPkg(name string) string {
-	return strings.ToLower(strings.ReplaceAll(name, "-", ""))
 }
 
 // field100Regex catches both `gibson.graphrag.v1.DiscoveryResult discovery = 100;`

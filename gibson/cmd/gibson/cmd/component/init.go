@@ -163,10 +163,15 @@ func runInit(name, kindStr, dir string, withSecrets []string, force bool) error 
 		fmt.Println("  go test ./...            # hermetic cassette test")
 	}
 	fmt.Println("  make build")
-	// Every component kind enrols through the one capability-grant
-	// mechanism (ADR-0045): a bootstrap token presented to `register`.
-	fmt.Println("  gibson component register --token <bootstrap-token>")
-	fmt.Println("  gibson component run")
+	// Every component kind enrols through the one capability-grant mechanism
+	// (ADR-0045), and it does it ITSELF at boot from two environment variables
+	// (sdk#128). `gibson component register` existed only to read component.yaml
+	// and was deleted with it (ADR-0097, adk#90).
+	fmt.Println("")
+	fmt.Println("  # enrol on first start: the binary does the handshake itself")
+	fmt.Printf("  export GIBSON_URL=https://<your-platform>\n")
+	fmt.Printf("  export GIBSON_BOOTSTRAP_TOKEN=<one-time-token-from-the-dashboard>\n")
+	fmt.Printf("  gibson component run --kind %s\n", k)
 	return nil
 }
 

@@ -36,7 +36,6 @@ var tmplFS embed.FS
 // structs and the handler; the SDK derives each method's JSON-Schema contract
 // from those Go types, so there is no .proto, no buf, and no generated code.
 var pluginOutputFilename = map[string]string{
-	"component.yaml.tmpl":   "component.yaml",
 	"plugin.yaml.tmpl":      "plugin.yaml",
 	"go.mod.tmpl":           "go.mod",
 	"handler.go.tmpl":       "handler.go",
@@ -64,7 +63,6 @@ var connectorOutputFilename = map[string]string{
 
 // agentOutputFilename maps templates/agent/ basenames to output paths.
 var agentOutputFilename = map[string]string{
-	"component.yaml.tmpl": "component.yaml",
 	"main.go.tmpl":        "main.go",
 	"go.mod.tmpl":         "go.mod",
 	"Makefile.tmpl":       "Makefile",
@@ -81,7 +79,6 @@ var agentOutputFilename = map[string]string{
 // buf STANDARD's PACKAGE_DIRECTORY_MATCH passes). Vendored protos under
 // templates/tool/proto/vendor/ are copied verbatim by walkVendoredProtos.
 var toolOutputFilename = map[string]string{
-	"component.yaml.tmpl": "component.yaml",
 	"main.go.tmpl":        "main.go",
 	"go.mod.tmpl":         "go.mod",
 	"Makefile.tmpl":       "Makefile",

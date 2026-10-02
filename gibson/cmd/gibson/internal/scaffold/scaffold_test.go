@@ -109,7 +109,6 @@ func TestRender_AllFilesPresent(t *testing.T) {
 	require.NoError(t, err)
 
 	wantFiles := []string{
-		"component.yaml",
 		"plugin.yaml",
 		"go.mod",
 		"handler.go",
@@ -209,7 +208,7 @@ func TestRender_AgentAllFilesPresent(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, name := range []string{
-		"component.yaml", "main.go", "go.mod",
+		"main.go", "go.mod",
 		"Makefile", "Dockerfile", ".gitignore", "README.md",
 		"ontology.yaml",
 	} {
@@ -218,6 +217,9 @@ func TestRender_AgentAllFilesPresent(t *testing.T) {
 	// No proto, no buf config, no plugin.yaml.
 	assert.NotContains(t, files, "plugin.yaml")
 	assert.NotContains(t, files, "buf.yaml")
+	// And no component.yaml: the scaffold stopped emitting it with ADR-0097
+	// (adk#90). A component declares nothing on disk that the CLI then parses.
+	assert.NotContains(t, files, "component.yaml")
 }
 
 func TestRender_ToolAllFilesPresent(t *testing.T) {
@@ -230,7 +232,7 @@ func TestRender_ToolAllFilesPresent(t *testing.T) {
 	require.NoError(t, err)
 
 	wantFiles := []string{
-		"component.yaml", "main.go", "go.mod",
+		"main.go", "go.mod",
 		"Makefile", "Dockerfile", ".gitignore", "README.md",
 		"buf.yaml", "buf.gen.yaml",
 		"ontology.yaml",
@@ -241,6 +243,8 @@ func TestRender_ToolAllFilesPresent(t *testing.T) {
 	for _, name := range wantFiles {
 		assert.Contains(t, files, name, "tool scaffold missing %q", name)
 	}
+	assert.NotContains(t, files, "component.yaml", "the scaffold no longer emits component.yaml (adk#90)")
+
 	// Field-100 contract is encoded in the proto template.
 	assert.Contains(t, string(files["api/proto/gibson/tools/demotool/v1/demotool.proto"]),
 		"gibson.graphrag.v1.DiscoveryResult discovery = 100",

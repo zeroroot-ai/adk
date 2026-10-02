@@ -1,9 +1,13 @@
 # Debugging demo-agent enrollment
 
-`gibson component register --token <bootstrap-token>` runs the SDK's
-**capability-grant (CG)** handshake — the one enrollment mechanism every
+Starting the binary with `GIBSON_URL` and `GIBSON_BOOTSTRAP_TOKEN` set runs the
+SDK's **capability-grant (CG)** handshake — the one enrollment mechanism every
 component kind shares (docs ADR-0045). It does three things in order;
 the error message names which step failed.
+
+There is no CLI enrolment step. `gibson component register` existed only to read
+component.yaml and was deleted with it (ADR-0097); the binary enrols itself
+(sdk#128).
 
 ## 1. Bootstrap
 

@@ -44,8 +44,8 @@ func Command() *cobra.Command {
 		Use:   "inspect",
 		Short: "Show what this principal can do (calls WhoAmI on the Gibson daemon)",
 		Long: `inspect loads the local runtime credential at
-~/.gibson/<kind>/<name>.runtime.json (written by gibson component
-register), signs a per-RPC Capability-Grant JWT with the registered
+~/.gibson/<kind>/<name>.runtime.json (written by the component itself on
+its first start, from GIBSON_URL and GIBSON_BOOTSTRAP_TOKEN), signs a per-RPC Capability-Grant JWT with the registered
 agent key, and calls IdentityService.WhoAmI to print the principal's
 effective Gibson permissions.
 
@@ -114,7 +114,7 @@ func runInspect(ctx context.Context, kind, name string, jsonOut bool, out, errOu
 }
 
 // errNoInstalls means no component credential exists on disk.
-var errNoInstalls = errors.New("inspect: no registered components found under ~/.gibson/{agent,tool,plugin}/ and no login session — run `gibson login`, or `gibson component register --token <bootstrap-token>`")
+var errNoInstalls = errors.New("inspect: no registered components found under ~/.gibson/{agent,tool,plugin}/ and no login session — run `gibson login`, or start the component once with GIBSON_URL and GIBSON_BOOTSTRAP_TOKEN set so it enrols itself")
 
 // hasLoginSession reports whether `gibson login` stored a session.
 func hasLoginSession() bool {

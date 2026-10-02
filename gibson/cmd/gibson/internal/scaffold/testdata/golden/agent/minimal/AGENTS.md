@@ -95,15 +95,18 @@ policy, not by mechanism.
 
 1. **Mint** — your tenant-admin uses the dashboard's "Register Agent"
    wizard, which returns a single-use **bootstrap token** (24h TTL).
-2. **Register** — paste the bootstrap token:
+2. **Enrol** — give the binary the token and start it. There is no CLI step:
    ```sh
-   gibson component register --token <bootstrap-token>
+   export GIBSON_URL=https://<your-platform>
+   export GIBSON_BOOTSTRAP_TOKEN=<bootstrap-token>
+   make build && gibson component run --kind agent
    ```
-   Runs the SDK's `capabilitygrant` Bootstrap → Discover → Register
-   handshake and persists `~/.gibson/agent/demo-agent.host_key` plus
-   `~/.gibson/agent/demo-agent.runtime.json` (both mode 0600). Idempotent:
-   re-running with the same install is a no-op success.
-3. **Run** — `make build && gibson component run`. The CLI starts the
+   The SDK runs its own `capabilitygrant` Bootstrap → Discover → Register
+   handshake on start and persists `~/.gibson/agent/demo-agent.host_key` plus
+   `~/.gibson/agent/demo-agent.runtime.json` (both mode 0600). A restart after a
+   successful enrolment needs no token at all: the host key takes over, so a
+   one-time credential is consumed exactly once (sdk#128).
+3. **Run** — `make build && gibson component run --kind agent`. The CLI starts the
    binary, which calls `sdk.ServeAgent(...)` from `main.go` and serves
    gRPC on port 50051. The daemon dials when a mission needs you.
 4. **Verify grants** — `gibson inspect`. Auto-detects the runtime

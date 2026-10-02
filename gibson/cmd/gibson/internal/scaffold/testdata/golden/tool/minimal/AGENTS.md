@@ -101,14 +101,17 @@ policy, not by mechanism.
 
 1. **Mint** — your tenant-admin uses the dashboard's "Register Tool"
    wizard, which returns a single-use **bootstrap token** (24h TTL).
-2. **Register** — paste the bootstrap token:
+2. **Enrol** — give the binary the token and start it. There is no CLI step:
    ```sh
-   gibson component register --token <bootstrap-token>
+   export GIBSON_URL=https://<your-platform>
+   export GIBSON_BOOTSTRAP_TOKEN=<bootstrap-token>
+   make proto && make build && gibson component run --kind tool
    ```
-   Runs the SDK's `capabilitygrant` Bootstrap → Discover → Register
-   handshake and persists `~/.gibson/tool/demo-tool.host_key` plus
-   `~/.gibson/tool/demo-tool.runtime.json` (both mode 0600). Idempotent.
-3. **Run** — `make proto && make build && gibson component run`.
+   The SDK runs its own `capabilitygrant` Bootstrap → Discover → Register
+   handshake on start and persists `~/.gibson/tool/demo-tool.host_key` plus
+   `~/.gibson/tool/demo-tool.runtime.json` (both mode 0600). A restart after a
+   successful enrolment needs no token: the host key takes over (sdk#128).
+3. **Run** — `make proto && make build && gibson component run --kind tool`.
 4. **Verify grants** — `gibson inspect`.
 
 ## Do not

@@ -4,8 +4,6 @@
 package enroll
 
 import (
-	"path/filepath"
-
 	"github.com/zeroroot-ai/sdk/capabilitygrant"
 )
 
@@ -29,26 +27,6 @@ type InstallRef = capabilitygrant.InstallRef
 // RuntimeInstallPath returns <gibsonDir>/<kind>/<name>.runtime.json.
 func RuntimeInstallPath(kind, name string) (string, error) {
 	return capabilitygrant.RuntimeInstallPath(kind, name)
-}
-
-// CGHostKeyPath returns <gibsonDir>/<kind>/<name>.host_key — the persisted host
-// key the SDK CG client uses for idempotent re-registration. The directory
-// relocation (GIBSON_HOME) is owned by the SDK's GibsonDir.
-func CGHostKeyPath(kind, name string) (string, error) {
-	dir, err := capabilitygrant.GibsonDir()
-	if err != nil {
-		return "", err
-	}
-	base := name
-	if base == "" {
-		base = "default"
-	}
-	return filepath.Join(dir, kind, base+".host_key"), nil
-}
-
-// SaveRuntimeInstall writes the install record atomically with 0600 permissions.
-func SaveRuntimeInstall(kind, name string, install RuntimeInstall) (string, error) {
-	return capabilitygrant.SaveRuntimeInstall(kind, name, install)
 }
 
 // ListInstalls scans <gibsonDir>/{agent,tool,plugin}/*.runtime.json.

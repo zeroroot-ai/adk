@@ -1,8 +1,7 @@
 BINARY   := byte-identity-secret
 MANIFEST := ./plugin.yaml
-TOKEN    ?=
 
-.PHONY: build test register run image
+.PHONY: build test run image
 
 ## build: compile the plugin binary (CGO_ENABLED=0).
 build:
@@ -12,15 +11,12 @@ build:
 test:
 	go test ./...
 
-## register: first-time registration with the Gibson daemon.
-## Usage: make register TOKEN=<bootstrap-token>
-register:
-	@if [ -z "$(TOKEN)" ]; then echo "TOKEN is required: make register TOKEN=<bootstrap-token>"; exit 1; fi
-	gibson component register --token "$(TOKEN)"
-
 ## run: start the plugin via the CLI's process supervisor.
+## Enrolment happens on the first start, from two environment variables
+## (sdk#128): GIBSON_URL and GIBSON_BOOTSTRAP_TOKEN. `gibson component register`
+## existed only to read component.yaml and was deleted with it (adk#90).
 run: build
-	gibson component run
+	gibson component run --kind plugin
 
 ## image: build the container image.
 image:
