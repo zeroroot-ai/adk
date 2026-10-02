@@ -64,12 +64,12 @@ type ComponentMetadata struct {
 }
 
 // ComponentSpec carries kind-specific configuration.
+//
+// There is no `image` key. One was declared here for `gibson component build`
+// to read, and that command generates, validates and runs `go build ./...`: it
+// builds a Go binary and never builds or tags a container image. No scaffold
+// template wrote the key and no code read it (adk#74).
 type ComponentSpec struct {
-	// Image is an optional container image reference, populated by the
-	// developer when they want `gibson component build` to know the
-	// target tag.
-	Image string `yaml:"image,omitempty"`
-
 	// MainPath is the path (relative to component.yaml) of the Go main
 	// package. Defaults to "./" when empty.
 	MainPath string `yaml:"main_path,omitempty"`

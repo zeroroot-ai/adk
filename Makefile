@@ -149,6 +149,14 @@ lint-new:
 #
 # v0.50.0 is the first release that analyses it. Same class as golangci-lint
 # below v2.14.0 and govulncheck at v1.1.4: the vendored x/tools is the lever.
+#
+# The gate ASSERTS the binary it ran carries this x/tools, because `command -v`
+# accepts whatever PATH resolves and the pin was decorative until it did. On
+# this workstation PATH served an x/tools v0.44.0 deadcode from an asdf Go
+# 1.23.2 package dir, which exits 2 on a Go 1.27 module. The gate then reports
+# the analysis failure — correctly, but with the wrong remedy, telling the
+# reader to raise a pin that was already correct. The assertion is keyed to
+# DEADCODE_VERSION, so bumping the pin needs no second edit.
 DEADCODE_VERSION := v0.50.0
 
 .PHONY: deadcode-install
@@ -178,6 +186,17 @@ deadcode:
 		echo "ERROR: deadcode not on PATH — run 'make bootstrap'." >&2; \
 		exit 1; \
 	}
+	@bin="$$(command -v deadcode)"; \
+	have="$$(go version -m "$$bin" 2>/dev/null | awk '$$1=="mod" && $$2=="golang.org/x/tools"{print $$3; exit}')"; \
+	if [ "$$have" != "$(DEADCODE_VERSION)" ]; then \
+		echo "ERROR: the deadcode that ran is x/tools $${have:-unreadable}, not $(DEADCODE_VERSION)." >&2; \
+		echo "  resolved from PATH: $$bin" >&2; \
+		echo "DEADCODE_VERSION is the pin, and PATH decided which binary runs. A stale" >&2; \
+		echo "binary from an older toolchain analyses nothing and the gate then reads as" >&2; \
+		echo "a pass for a reason that has nothing to do with this module." >&2; \
+		echo "Run 'make deadcode-install' and put its GOPATH/bin first on PATH." >&2; \
+		exit 1; \
+	fi
 	@err="$$(mktemp)"; \
 	out="$$(cd gibson && deadcode ./... 2>"$$err")"; rc=$$?; \
 	if [ "$$rc" -ne 0 ]; then \
