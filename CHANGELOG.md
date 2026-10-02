@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.110.0](https://github.com/zeroroot-ai/adk/compare/v0.109.5...v0.110.0) (2026-10-02)
+
+
+### Features
+
+* **go:** move the toolchain floor to 1.27.1 ([#76](https://github.com/zeroroot-ai/adk/issues/76)) ([423aae9](https://github.com/zeroroot-ai/adk/commit/423aae98095b04ebb189e013eac98a13ccef9f3f))
+* **secret:** gibson secret, the whole SecretsService surface ([#81](https://github.com/zeroroot-ai/adk/issues/81)) ([09257e1](https://github.com/zeroroot-ai/adk/commit/09257e1964848a8aed99f4472787d6bdb6f62d6a))
+
+
+### Bug Fixes
+
+* **cli:** the CLI reads the proxy environment, and keeps Go's transport defaults ([#79](https://github.com/zeroroot-ai/adk/issues/79)) ([c8d3388](https://github.com/zeroroot-ai/adk/commit/c8d338834f68e20bb609488ac7ff3e135550754c))
+* **deadcode:** the gate reported ok while analysing nothing ([#82](https://github.com/zeroroot-ai/adk/issues/82)) ([11b98a8](https://github.com/zeroroot-ai/adk/commit/11b98a88488fc91ae5890b4bc156d45d6d45ac1a))
+* **mission:** scaffold a target, so every template submits as written ([#70](https://github.com/zeroroot-ai/adk/issues/70)) ([7385760](https://github.com/zeroroot-ai/adk/commit/7385760bce19f81a180aa7fbb9ecefe7969cc0bb))
+
 ## [0.109.5](https://github.com/zeroroot-ai/adk/compare/v0.109.4...v0.109.5) (2026-10-01)
 
 
