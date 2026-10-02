@@ -109,6 +109,23 @@ func (c *Client) Discover(ctx context.Context, issuer string) (oauth2.Endpoint, 
 	if err := c.getJSON(ctx, endpoint, &d); err != nil {
 		return oauth2.Endpoint{}, fmt.Errorf("deviceauth: OIDC discovery (%s): %w", endpoint, err)
 	}
+	// OIDC Discovery 1.0 section 4.3: the `issuer` in the document MUST be
+	// identical to the issuer URL used to fetch it. Without this check a
+	// document served from one host can name another issuer, and the CLI then
+	// uses that host's authorization and token endpoints while believing it is
+	// talking to the issuer the daemon's bootstrap named. The issuer is also
+	// what the token's `iss` is validated against downstream, so a mismatch
+	// here is a mismatch nothing later catches.
+	//
+	// Trailing slashes are normalised because a document may spell its own
+	// issuer with or without one and both denote the same issuer.
+	if got, want := strings.TrimSuffix(d.Issuer, "/"), strings.TrimSuffix(issuer, "/"); got != want {
+		return oauth2.Endpoint{}, fmt.Errorf(
+			"deviceauth: OIDC discovery at %s declares issuer %q, expected %q — "+
+				"the daemon's bootstrap named one issuer and its discovery document names another, "+
+				"so the login would use endpoints from an issuer nobody asked for",
+			endpoint, d.Issuer, issuer)
+	}
 	if d.TokenEndpoint == "" || d.DeviceAuthorizationEndpoint == "" {
 		return oauth2.Endpoint{}, fmt.Errorf("deviceauth: issuer %s does not advertise a device_authorization_endpoint (is the device grant enabled?)", issuer)
 	}

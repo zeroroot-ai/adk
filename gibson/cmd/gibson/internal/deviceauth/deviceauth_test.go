@@ -6,6 +6,7 @@ package deviceauth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -135,14 +136,26 @@ func TestFetchBootstrap(t *testing.T) {
 }
 
 func TestDiscoverRequiresDeviceEndpoint(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	// The issuer must MATCH the server, or the issuer check added for OIDC
+	// Discovery 4.3 fires first and this test passes without ever reaching the
+	// device-endpoint branch it exists for. It used to serve issuer "x" and
+	// assert only that some error came back, which is how a test keeps passing
+	// while covering nothing.
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		// advertise token but NOT device_authorization_endpoint
-		_, _ = w.Write([]byte(`{"issuer":"x","token_endpoint":"https://t/token"}`))
+		_, _ = fmt.Fprintf(w, `{"issuer":%q,"token_endpoint":"https://t/token"}`, srv.URL)
 	}))
 	defer srv.Close()
 	c := &Client{HTTP: srv.Client()}
-	if _, err := c.Discover(context.Background(), srv.URL); err == nil {
+	_, err := c.Discover(context.Background(), srv.URL)
+	if err == nil {
 		t.Fatal("expected error when device_authorization_endpoint is absent")
+	}
+	// Assert WHICH error, so the next guard added above it cannot silently
+	// take this test over.
+	if !strings.Contains(err.Error(), "device_authorization_endpoint") {
+		t.Fatalf("expected the device-endpoint error, got: %v", err)
 	}
 }
 
@@ -292,5 +305,65 @@ func TestPollTokenKeepsCallerTimeout(t *testing.T) {
 	_, err := PollToken(ctx, cfg, da)
 	if errors.Is(err, ErrDeviceCodeExpired) || !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("err = %v, want the caller's context deadline", err)
+	}
+}
+
+// TestDiscover_RejectsIssuerMismatch is the OIDC Discovery 1.0 section 4.3
+// check: the `issuer` in the document must equal the issuer it was fetched
+// from. Without it a document served from one host can name another issuer and
+// the CLI uses that issuer's endpoints, believing it reached the one the
+// daemon's bootstrap named.
+//
+// Verified safe to enforce against the live staging estate before adding it:
+//
+//	api.staging.zeroroot.ai/.well-known/gibson-login -> issuer https://app.staging.zeroroot.ai
+//	app.staging.zeroroot.ai/.well-known/openid-configuration -> issuer https://app.staging.zeroroot.ai
+//
+// They match, so this rejects nothing that works today.
+func TestDiscover_RejectsIssuerMismatch(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{
+			"issuer":"https://evil.example",
+			"authorization_endpoint":"https://evil.example/authorize",
+			"token_endpoint":"https://evil.example/token",
+			"device_authorization_endpoint":"https://evil.example/device"
+		}`))
+	}))
+	defer srv.Close()
+
+	c := &Client{HTTP: srv.Client()}
+	_, err := c.Discover(context.Background(), srv.URL)
+	if err == nil {
+		t.Fatal("Discover accepted a document declaring a different issuer")
+	}
+	for _, want := range []string{"declares issuer", "evil.example", srv.URL} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error does not mention %q: %v", want, err)
+		}
+	}
+}
+
+// TestDiscover_AcceptsMatchingIssuer covers the real shape, including the
+// trailing-slash spelling a provider may use for its own issuer.
+func TestDiscover_AcceptsMatchingIssuer(t *testing.T) {
+	for _, spelling := range []string{"", "/"} {
+		var srv *httptest.Server
+		srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = fmt.Fprintf(w, `{
+				"issuer":"%s%s",
+				"authorization_endpoint":"%s/authorize",
+				"token_endpoint":"%s/token",
+				"device_authorization_endpoint":"%s/device"
+			}`, srv.URL, spelling, srv.URL, srv.URL, srv.URL)
+		}))
+		c := &Client{HTTP: srv.Client()}
+		ep, err := c.Discover(context.Background(), srv.URL)
+		if err != nil {
+			t.Fatalf("issuer spelled %q rejected: %v", srv.URL+spelling, err)
+		}
+		if ep.DeviceAuthURL != srv.URL+"/device" {
+			t.Errorf("DeviceAuthURL = %q", ep.DeviceAuthURL)
+		}
+		srv.Close()
 	}
 }
