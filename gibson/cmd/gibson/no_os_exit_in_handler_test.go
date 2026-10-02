@@ -69,10 +69,12 @@ func TestNoOsExitInHandler(t *testing.T) {
 		RepoRoot:  moduleRoot,
 		Matchers:  matchers,
 		Allowlist: allowlist,
-		// Match allowlist entries on "file :: snippet", never on file:line.
-		AllowlistByContent: true,
-		SkipTestFiles:      true,
-		SkipGenerated:      true,
+		// Allowlist entries match on "file :: snippet", never on file:line. That
+		// is no longer a choice: ast-checks v0.5.0 made content keying the only
+		// keying, so the AllowlistByContent field that used to be set here is a
+		// deprecated no-op and is deleted upstream in v0.6.0.
+		SkipTestFiles: true,
+		SkipGenerated: true,
 	}
 
 	findings, err := astchecks.Walk(opts)
