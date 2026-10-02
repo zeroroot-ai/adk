@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.110.1](https://github.com/zeroroot-ai/adk/compare/v0.110.0...v0.110.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **ci:** adk required three checks while fourteen ran ([#93](https://github.com/zeroroot-ai/adk/issues/93)) ([69fc4bb](https://github.com/zeroroot-ai/adk/commit/69fc4bbe34d420a311e72648f4d558ebc7d6c841))
+* **ci:** move the reusable-go-ci pin past the govulncheck panic ([#87](https://github.com/zeroroot-ai/adk/issues/87)) ([171c4c1](https://github.com/zeroroot-ai/adk/commit/171c4c13ef0961fed38df28b6352c678a5cff938))
+* **cli:** verify the OIDC issuer, and drop two config keys nothing reads ([#85](https://github.com/zeroroot-ai/adk/issues/85)) ([8d1ca3a](https://github.com/zeroroot-ai/adk/commit/8d1ca3a0f67be9645a592d3a90719fca95790e86))
+* **component:** drop a spec key no build step reads, and make the deadcode pin real ([#89](https://github.com/zeroroot-ai/adk/issues/89)) ([1f948cf](https://github.com/zeroroot-ai/adk/commit/1f948cf7185a6d91d13593a340fdcbf723e0562c))
+
 ## [0.110.0](https://github.com/zeroroot-ai/adk/compare/v0.109.5...v0.110.0) (2026-10-02)
 
 
