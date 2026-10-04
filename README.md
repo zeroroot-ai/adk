@@ -112,6 +112,12 @@ gibson mission validate <file>               # cue vet + protovalidate
 gibson mission render <file>                 # compile to proto-shaped JSON/YAML
 gibson mission submit <file.cue>             # CUE→define→run full round trip
                                              # (CreateMissionDefinition + CreateMission)
+gibson mission catalog list                  # the missions the platform ships
+gibson mission catalog show <name>           # that mission's CUE, verbatim
+gibson mission submit --catalog <name> --target <uuid> --param k=v
+                                             # run a shipped mission, rendered
+                                             # server-side from the daemon's own
+                                             # definition (ADR-0018)
 
 # Targets
 gibson target create --name <n> --url <u>    # register a target, print its UUID

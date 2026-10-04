@@ -44,5 +44,6 @@ Subcommands:
 	c.AddCommand(validateCmd())
 	c.AddCommand(renderCmd())
 	c.AddCommand(submitCmd())
+	c.AddCommand(catalogCmd())
 	return c
 }
