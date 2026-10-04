@@ -335,3 +335,57 @@ func keysOf(m map[string][]byte) []string {
 	}
 	return out
 }
+
+// dockerfileSourcesNotScaffolded are the build-context files a scaffolded
+// Dockerfile copies that Render does not emit, each with the reason another
+// step produces it. An entry that no Dockerfile copies fails the test, so the
+// list cannot outlive its reason.
+var dockerfileSourcesNotScaffolded = map[string]string{
+	"go.sum": "written by `go mod tidy`, which `gibson component build` runs on a fresh scaffold",
+}
+
+// TestRender_DockerfileCopiesOnlyFilesTheScaffoldEmits fails when a scaffolded
+// Dockerfile copies a file out of the build context that the same scaffold
+// does not write. The agent and tool Dockerfiles copied component.yaml after
+// the scaffold stopped emitting it (adk#90), so `docker build` failed on a
+// freshly scaffolded component.
+func TestRender_DockerfileCopiesOnlyFilesTheScaffoldEmits(t *testing.T) {
+	exemptSeen := map[string]bool{}
+	dockerfiles := 0
+	for _, kind := range []scaffold.Kind{scaffold.KindAgent, scaffold.KindTool, scaffold.KindPlugin} {
+		files, err := scaffold.Render(scaffold.ScaffoldInput{
+			Name:       "demo",
+			Version:    "0.1.0",
+			Kind:       kind,
+			SDKVersion: "v1.2.0",
+		})
+		require.NoError(t, err)
+		dockerfile, ok := files["Dockerfile"]
+		require.True(t, ok, "%s scaffold emits no Dockerfile", kind)
+		dockerfiles++
+
+		for line := range strings.SplitSeq(string(dockerfile), "\n") {
+			fields := strings.Fields(line)
+			if len(fields) < 3 || fields[0] != "COPY" || strings.HasPrefix(fields[1], "--from=") {
+				continue
+			}
+			for _, src := range fields[1 : len(fields)-1] {
+				src = strings.TrimSuffix(src, "*")
+				if src == "." {
+					continue
+				}
+				if _, exempt := dockerfileSourcesNotScaffolded[src]; exempt {
+					exemptSeen[src] = true
+					continue
+				}
+				if _, emitted := files[src]; !emitted {
+					t.Errorf("the %s Dockerfile copies %q, which the %s scaffold does not emit", kind, src, kind)
+				}
+			}
+		}
+	}
+	require.Equal(t, 3, dockerfiles)
+	for src, reason := range dockerfileSourcesNotScaffolded {
+		assert.True(t, exemptSeen[src], "no scaffolded Dockerfile copies %q any more; delete its exemption (%s)", src, reason)
+	}
+}
