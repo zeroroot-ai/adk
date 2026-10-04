@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.111.0](https://github.com/zeroroot-ai/adk/compare/v0.110.1...v0.111.0) (2026-10-04)
+
+
+### Features
+
+* **mission:** the embedded CUE schema knows a mission declares its secrets ([#97](https://github.com/zeroroot-ai/adk/issues/97)) ([7763261](https://github.com/zeroroot-ai/adk/commit/77632618a8385837282145218c7b23a548c3a3aa))
+
 ## [0.110.1](https://github.com/zeroroot-ai/adk/compare/v0.110.0...v0.110.1) (2026-10-02)
 
 
