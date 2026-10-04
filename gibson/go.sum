@@ -78,8 +78,8 @@ github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWD
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/zeroroot-ai/ast-checks v0.5.0 h1:SJrTO69PH+Qjk9cs4zOpQRETKcuGZmqdlchZ0ob06cY=
 github.com/zeroroot-ai/ast-checks v0.5.0/go.mod h1:u/PEu5uYl9jW9mtvfScxuo05GXqxFKx2dNsjOMUtoD8=
-github.com/zeroroot-ai/sdk v0.191.1 h1:FhiBJK3fZXhSJnKnsZBlscmYODlGKjP7dSkai1pgaiU=
-github.com/zeroroot-ai/sdk v0.191.1/go.mod h1:/lAS0+pm4PZR3A9jCTNombwOM+1cBuPpRxhfYT+aCCs=
+github.com/zeroroot-ai/sdk v0.192.0 h1:2HoAdBPsaTcEMgGaoQGwCoMegM4Poh8Q7eiNxK5qzTk=
+github.com/zeroroot-ai/sdk v0.192.0/go.mod h1:/lAS0+pm4PZR3A9jCTNombwOM+1cBuPpRxhfYT+aCCs=
 go.yaml.in/yaml/v2 v2.4.3 h1:6gvOSjQoTB3vt1l+CU+tSyi/HOjfOjRLJ4YwYZGwRO0=
 go.yaml.in/yaml/v2 v2.4.3/go.mod h1:zSxWcmIDjOzPXpjlTTbAsKokqkDNAVtZO0WOMiT90s8=
 go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
