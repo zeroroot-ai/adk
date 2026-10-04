@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.112.0](https://github.com/zeroroot-ai/adk/compare/v0.111.0...v0.112.0) (2026-10-04)
+
+
+### Features
+
+* **mission:** submit a mission the platform ships ([#106](https://github.com/zeroroot-ai/adk/issues/106)) ([bbe73c6](https://github.com/zeroroot-ai/adk/commit/bbe73c6ecd67390728a4d90265e9781580ae720f))
+
 ## [0.111.0](https://github.com/zeroroot-ai/adk/compare/v0.110.1...v0.111.0) (2026-10-04)
 
 
