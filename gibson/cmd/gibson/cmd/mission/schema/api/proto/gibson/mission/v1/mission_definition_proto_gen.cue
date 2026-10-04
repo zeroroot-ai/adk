@@ -106,6 +106,63 @@ import (
 	// "decider"). Absent means the brain uses the tenant's dashboard-default
 	// provider/model, so missions need not set it.
 	deciderSlot?: #LLMSlotConfig @protobuf(17,LLMSlotConfig,name=decider_slot)
+
+	// Secrets declares which named tenant secrets this mission's components may
+	// be handed at dispatch. Names only; a value never appears here.
+	secrets?: #MissionSecrets @protobuf(18,MissionSecrets)
+}
+
+// MissionSecrets declares which named tenant secrets the components of a
+// mission may be handed, and to which of them.
+//
+// NAMES ONLY. A secret's value is resolved server-side at dispatch by the
+// daemon, which holds the KEK and the broker, and is handed to the component as
+// environment. A value never appears in a mission definition, which is stored,
+// listed, rendered, validated and displayed. A component never names a secret
+// itself: the same property ScopeID has, where an agent-supplied value would
+// make the decision attacker-influenceable.
+//
+// This does NOT widen FGA. `secret.can_resolve` admits only plugin_principal,
+// and the non-plugin-secret-isolation spec asserts an agent and a tool are each
+// denied (gibson tests/e2e/secrets/non_plugin_deny_test.go). That property is
+// preserved exactly: a component still cannot ask for a secret. This declares
+// what the daemon may hand it, and the daemon resolves as itself.
+//
+// The wide lists and the per-name maps UNION. A tool named T in a mission whose
+// definition sets `mission`, `tools` and `tool[T]` may be handed any name in any
+// of the three. An absent block means no component is handed anything, which is
+// the behavior before this field existed.
+#MissionSecrets: {
+	// Mission is handed to every component in the run, whatever its kind.
+	mission?: [...string] @protobuf(1,string)
+
+	// Agents, Tools and Plugins are handed to every component of that kind.
+	agents?: [...string] @protobuf(2,string)
+	tools?: [...string] @protobuf(3,string)
+	plugins?: [...string] @protobuf(4,string)
+
+	// Agent, Tool and Plugin are handed to one NAMED component. The key is the
+	// component name as the catalog and the mission node spell it.
+	//
+	// Three explicit maps rather than one keyed by a ComponentKind enum: no
+	// such enum exists in this module, adding one to express three cases is a
+	// permanent API surface for no gain, and a map per kind is what the file
+	// already does for nodes (`map<string, MissionNode> nodes = 6`).
+	agent?: {
+		[string]: #SecretNames
+	} @protobuf(5,map[string]SecretNames)
+	tool?: {
+		[string]: #SecretNames
+	} @protobuf(6,map[string]SecretNames)
+	plugin?: {
+		[string]: #SecretNames
+	} @protobuf(7,map[string]SecretNames)
+}
+
+// SecretNames is a list of secret names, as the value of a per-component map.
+// proto3 has no repeated map value, so the list needs a message.
+#SecretNames: {
+	names?: [...string] @protobuf(1,string)
 }
 
 // MissionConstraints declares the operational limits baked into a mission

@@ -252,6 +252,79 @@ func TestCUESchemaValidation_JobNode(t *testing.T) {
 	}
 }
 
+// TestCUESchemaValidation_MissionSecrets proves the embedded schema accepts a
+// mission that declares which named tenant secrets its components may be handed
+// (zeroroot-ai/gibson#485, sdk v0.191.0).
+//
+// Same shape as the job-node test above: the fixture goes through CUE against
+// the embedded bundle and then through protojson into the SDK Go types, so a
+// rename or a retype in the SDK mission proto fails here rather than at a
+// user's `gibson mission submit`.
+//
+// Every scope is asserted, because the scopes UNION rather than narrow. A
+// mission that set only the wide lists would pass a test that read one scope,
+// while a per-name map that silently failed to decode would hand a named
+// component less than the author declared.
+func TestCUESchemaValidation_MissionSecrets(t *testing.T) {
+	src, err := os.ReadFile(filepath.Join("testdata", "secrets_mission.cue"))
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+
+	def, err := parseMission(src, "cue")
+	if err != nil {
+		t.Fatalf("expected the secrets fixture to validate, got: %v", err)
+	}
+
+	sec := def.GetSecrets()
+	if sec == nil {
+		t.Fatal("secrets is nil; the block did not decode")
+	}
+
+	for _, tc := range []struct {
+		scope string
+		got   []string
+		want  string
+	}{
+		{"mission", sec.GetMission(), "cred:tenant-ca"},
+		{"agents", sec.GetAgents(), "cred:agent-wide"},
+		{"tools", sec.GetTools(), "cred:goat-cluster"},
+		{"plugins", sec.GetPlugins(), "cred:plugin-wide"},
+	} {
+		if len(tc.got) != 1 || tc.got[0] != tc.want {
+			t.Errorf("secrets.%s = %v, want [%s]", tc.scope, tc.got, tc.want)
+		}
+	}
+
+	for _, tc := range []struct {
+		scope     string
+		got       map[string]*missionv1.SecretNames
+		component string
+		want      string
+	}{
+		{"agent", sec.GetAgent(), "zerocool", "cred:zerocool-only"},
+		{"tool", sec.GetTool(), "kube-bench", "cred:kube-bench-only"},
+		{"plugin", sec.GetPlugin(), "github-plugin", "cred:github-token"},
+	} {
+		entry, ok := tc.got[tc.component]
+		if !ok {
+			t.Errorf("secrets.%s has no entry for %q, only %v", tc.scope, tc.component, tc.got)
+			continue
+		}
+		if names := entry.GetNames(); len(names) != 1 || names[0] != tc.want {
+			t.Errorf("secrets.%s[%q] = %v, want [%s]", tc.scope, tc.component, names, tc.want)
+		}
+	}
+
+	// The tool node carries the secret's NAME, which is what makes the input
+	// safe to store. A fixture that put a value here would pass CUE and defeat
+	// the whole point of the block.
+	in := def.GetNodes()["benchmark"].GetToolConfig().GetInput()
+	if got := in["kubeconfigSecret"]; got != "cred:goat-cluster" {
+		t.Errorf("benchmark input kubeconfigSecret = %q, want the declared name", got)
+	}
+}
+
 // TestCUESchemaValidation_ShippedTemplates runs every shipped template
 // under templates/<name>/template.cue through the schema-aware path, the
 // same path `make templates-vet` drives through the CLI. It also pins the
