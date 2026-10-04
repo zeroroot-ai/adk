@@ -20,6 +20,6 @@ permissions:
 
 jobs:
   architectural-doc-coverage:
-    uses: zeroroot-ai/.github/.github/workflows/architectural-doc-coverage.yml@c06ea08fddecc754ac6faf06f9fc0511d13cb955 # v0.5.2
+    uses: zeroroot-ai/.github/.github/workflows/architectural-doc-coverage.yml@40c67fd77152f2c4924abccbd992dbca065f325b # v0.8.2
     secrets:
       DOCS_REPO_READ_TOKEN: ${{ secrets.DOCS_REPO_READ_TOKEN }}
