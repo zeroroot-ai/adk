@@ -91,9 +91,12 @@ unauthenticated path.`,
 				if client != nil {
 					return nil
 				}
-				c, err := deviceauth.Dial(ctx, gibsonURL)
-				if err != nil {
-					return err
+				c, derr := deviceauth.Dial(ctx, gibsonURL)
+				if derr != nil {
+					// Wrapped, and errors.Is still reaches
+					// deviceauth.ErrNotLoggedIn — which is what tells a
+					// logged-out user to run `gibson login`.
+					return fmt.Errorf("dial the daemon: %w", derr)
 				}
 				conn = c
 				client = daemonv1.NewDaemonServiceClient(conn)
@@ -108,8 +111,8 @@ unauthenticated path.`,
 			var def *missionv1.MissionDefinition
 			var err error
 			if catalogName != "" {
-				if err = dial(); err != nil {
-					return err
+				if derr := dial(); derr != nil {
+					return derr
 				}
 				params, perr := parseParams(catalogParams)
 				if perr != nil {
@@ -153,8 +156,8 @@ unauthenticated path.`,
 				return nil
 			}
 
-			if err = dial(); err != nil {
-				return err
+			if derr := dial(); derr != nil {
+				return derr
 			}
 
 			// Resolve the target BEFORE anything is created server-side. The

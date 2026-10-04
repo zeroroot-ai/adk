@@ -61,7 +61,10 @@ func catalogListCmd() *cobra.Command {
 
 			conn, err := deviceauth.Dial(ctx, gibsonURL)
 			if err != nil {
-				return err
+				// Wrapped, and errors.Is still reaches
+				// deviceauth.ErrNotLoggedIn — which is what tells a logged-out
+				// user to run `gibson login`.
+				return fmt.Errorf("dial the daemon: %w", err)
 			}
 			defer func() { _ = conn.Close() }()
 
@@ -73,16 +76,16 @@ func catalogListCmd() *cobra.Command {
 			if len(resp.GetMissions()) == 0 {
 				// Said out loud. An empty listing printed as nothing reads as a
 				// broken command rather than as an empty catalog.
-				fmt.Fprintln(cmd.OutOrStdout(), "the platform ships no missions")
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "the platform ships no missions")
 				return nil
 			}
 			for _, m := range resp.GetMissions() {
-				fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\n", m.GetName(), m.GetDescription())
-				fmt.Fprintf(cmd.OutOrStdout(), "  version %s\n", m.GetVersion())
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\n", m.GetName(), m.GetDescription())
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  version %s\n", m.GetVersion())
 				if p := m.GetDeclaredParams(); len(p) > 0 {
-					fmt.Fprintf(cmd.OutOrStdout(), "  --param %s\n", strings.Join(p, "=… --param ")+"=…")
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  --param %s\n", strings.Join(p, "=… --param ")+"=…")
 				} else {
-					fmt.Fprintln(cmd.OutOrStdout(), "  takes no parameters")
+					_, _ = fmt.Fprintln(cmd.OutOrStdout(), "  takes no parameters")
 				}
 			}
 			return nil
@@ -121,7 +124,10 @@ what validates them.`,
 
 			conn, err := deviceauth.Dial(ctx, gibsonURL)
 			if err != nil {
-				return err
+				// Wrapped, and errors.Is still reaches
+				// deviceauth.ErrNotLoggedIn — which is what tells a logged-out
+				// user to run `gibson login`.
+				return fmt.Errorf("dial the daemon: %w", err)
 			}
 			defer func() { _ = conn.Close() }()
 
@@ -135,14 +141,14 @@ what validates them.`,
 			}
 
 			if !rendered {
-				fmt.Fprintln(cmd.OutOrStdout(), resp.GetSource())
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), resp.GetSource())
 				return nil
 			}
 			out, err := protojson.MarshalOptions{Multiline: true, Indent: "  "}.Marshal(resp.GetMission())
 			if err != nil {
 				return fmt.Errorf("protojson marshal: %w", err)
 			}
-			fmt.Fprintln(cmd.OutOrStdout(), string(out))
+			_, _ = fmt.Fprintln(cmd.OutOrStdout(), string(out))
 			return nil
 		},
 	}
