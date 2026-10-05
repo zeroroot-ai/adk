@@ -110,6 +110,40 @@ import (
 	// Secrets declares which named tenant secrets this mission's components may
 	// be handed at dispatch. Names only; a value never appears here.
 	secrets?: #MissionSecrets @protobuf(18,MissionSecrets)
+
+	// Checkpoints selects what the end of a node keeps (ADR-0170). A
+	// checkpoint is the end of a node in a mission run, and a rewind starts
+	// a new run at a checkpoint.
+	//
+	// CHECKPOINT_MODE_UNSPECIFIED means CHECKPOINT_MODE_STATE, so a mission
+	// that does not set the field keeps no sandbox snapshot.
+	checkpoints?: #CheckpointMode @protobuf(19,CheckpointMode,"(buf.validate.field).enum=")
+}
+
+// CheckpointMode states what the end of a node keeps for a later rewind
+// (ADR-0170).
+#CheckpointMode:
+	#CHECKPOINT_MODE_UNSPECIFIED |
+	#CHECKPOINT_MODE_STATE |
+	#CHECKPOINT_MODE_SANDBOX
+
+// Sentinel value. The daemon treats it as CHECKPOINT_MODE_STATE.
+#CHECKPOINT_MODE_UNSPECIFIED: 0
+
+// State keeps the mission state at the end of each node and no sandbox
+// snapshot. A rewind starts the node in a fresh sandbox with the files
+// of the workspace. The default.
+#CHECKPOINT_MODE_STATE: 1
+
+// Sandbox also keeps a diff snapshot of the sandbox at the end of each
+// agent node. A rewind starts the node from that snapshot. A sandbox
+// snapshot lives 7 days after the run ends.
+#CHECKPOINT_MODE_SANDBOX: 2
+
+#CheckpointMode_value: {
+	CHECKPOINT_MODE_UNSPECIFIED: 0
+	CHECKPOINT_MODE_STATE:       1
+	CHECKPOINT_MODE_SANDBOX:     2
 }
 
 // MissionSecrets declares which named tenant secrets the components of a
