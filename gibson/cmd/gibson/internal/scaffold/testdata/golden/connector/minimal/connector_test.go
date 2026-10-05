@@ -7,22 +7,27 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// entry mirrors the fields gibson's connector catalog parses from a manifest
-// (internal/platform/connectorcatalog, ADR-0065 R6). It is declared locally so
-// this smoke test stays hermetic and never imports gibson — the integrations
-// repo must not depend on the platform.
+// entry mirrors the fields that gibson's platform catalog parses from a
+// connector manifest (internal/platform/componentcatalog, ADR-0065 R6). It is
+// declared locally so this smoke test stays hermetic and never imports gibson.
 type entry struct {
 	ID          string   `yaml:"id"`
-	Vendor      string   `yaml:"vendor"`
+	Kind        string   `yaml:"kind"`
 	DisplayName string   `yaml:"displayName"`
 	Description string   `yaml:"description"`
-	Shape       string   `yaml:"shape"`
-	Image       string   `yaml:"image"`
-	Endpoint    string   `yaml:"endpoint"`
-	Transport   string   `yaml:"transport"`
 	EgressAllow []string `yaml:"egressAllow"`
-	Auth        string   `yaml:"auth"`
-	OAuthScope  string   `yaml:"oauthScope"`
+	Spec        spec     `yaml:"spec"`
+}
+
+// spec is the connector block of a catalog entry.
+type spec struct {
+	Vendor     string `yaml:"vendor"`
+	Shape      string `yaml:"shape"`
+	Image      string `yaml:"image"`
+	Endpoint   string `yaml:"endpoint"`
+	Transport  string `yaml:"transport"`
+	Auth       string `yaml:"auth"`
+	OAuthScope string `yaml:"oauthScope"`
 }
 
 // validate applies the same shape invariants gibson's catalog loader enforces,
@@ -32,31 +37,34 @@ func (e entry) validate() error {
 	if e.ID == "" {
 		return errInvalid("id is required")
 	}
-	if e.Transport == "" {
+	if e.Kind != "connector" {
+		return errInvalid("kind must be connector, got " + e.Kind)
+	}
+	if e.Spec.Transport == "" {
 		return errInvalid("transport is required")
 	}
-	switch e.Shape {
+	switch e.Spec.Shape {
 	case "Remote":
-		if e.Endpoint == "" {
+		if e.Spec.Endpoint == "" {
 			return errInvalid("a Remote connector needs an endpoint")
 		}
-		if e.Image != "" {
+		if e.Spec.Image != "" {
 			return errInvalid("a Remote connector must not set image")
 		}
 	case "Hosted":
-		if e.Image == "" {
+		if e.Spec.Image == "" {
 			return errInvalid("a Hosted connector needs an image")
 		}
-		if e.Endpoint != "" {
+		if e.Spec.Endpoint != "" {
 			return errInvalid("a Hosted connector must not set endpoint")
 		}
 	default:
-		return errInvalid("shape must be Hosted or Remote, got " + e.Shape)
+		return errInvalid("shape must be Hosted or Remote, got " + e.Spec.Shape)
 	}
-	switch e.Auth {
+	switch e.Spec.Auth {
 	case "none", "secret", "oauth":
 	default:
-		return errInvalid("auth must be none, secret, or oauth, got " + e.Auth)
+		return errInvalid("auth must be none, secret, or oauth, got " + e.Spec.Auth)
 	}
 	return nil
 }
