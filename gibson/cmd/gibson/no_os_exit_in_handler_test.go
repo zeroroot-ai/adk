@@ -69,18 +69,19 @@ func TestNoOsExitInHandler(t *testing.T) {
 		RepoRoot:  moduleRoot,
 		Matchers:  matchers,
 		Allowlist: allowlist,
-		// Allowlist entries match on "file :: snippet", never on file:line. That
-		// is no longer a choice: ast-checks v0.5.0 made content keying the only
-		// keying, so the AllowlistByContent field that used to be set here is a
-		// deprecated no-op and is deleted upstream in v0.6.0.
+		// Allowlist entries match on "file :: snippet", never on file:line.
 		SkipTestFiles: true,
 		SkipGenerated: true,
 	}
 
-	findings, err := astchecks.Walk(opts)
+	report, err := astchecks.WalkReport(opts)
 	if err != nil {
-		t.Fatalf("Walk: %v", err)
+		t.Fatalf("WalkReport: %v", err)
 	}
+	findings := report.Findings
+	// An allowlist entry whose os.Exit call is gone fails here, so an entry
+	// cannot stay as a ready exemption for the next call with the same text.
+	astchecks.AssertNoStaleAllowlist(t, report)
 
 	if len(findings) > 0 {
 		t.Errorf("os.Exit() calls found outside the CLI entry point (forbidden):\n%s\n\n"+
