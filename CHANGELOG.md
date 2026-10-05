@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.112.2](https://github.com/zeroroot-ai/adk/compare/v0.112.1...v0.112.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* **cli:** the cli describes the enrollment that exists ([#123](https://github.com/zeroroot-ai/adk/issues/123)) ([f7a30a9](https://github.com/zeroroot-ai/adk/commit/f7a30a99a0f4314a9d734ce592ebb326cab7efad))
+
 ## [0.112.1](https://github.com/zeroroot-ai/adk/compare/v0.112.0...v0.112.1) (2026-10-04)
 
 
