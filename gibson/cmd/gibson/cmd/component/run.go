@@ -14,10 +14,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/enroll"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/layout"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/runner"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/validate"
+	"github.com/zeroroot-ai/sdk/capabilitygrant"
 )
 
 // runCmd returns `gibson component run`.
@@ -119,11 +119,11 @@ func doRun(dir, kind string, drainTimeout time.Duration) error {
 // registered. Kind-uniform (ADR-0045): every kind persists a runtime
 // credential at ~/.gibson/<kind>/<name>.runtime.json after the CG handshake.
 func preflightCredentials(kind, name string) error {
-	// enroll.RuntimeInstallPath is the one place this path is built; `gibson
+	// capabilitygrant.RuntimeInstallPath is the one place this path is built; `gibson
 	// inspect` reads the same file through the same package. My first pass
 	// duplicated the filepath.Join here, which is how two spellings of one path
 	// start to drift.
-	path, err := enroll.RuntimeInstallPath(kind, name)
+	path, err := capabilitygrant.RuntimeInstallPath(kind, name)
 	if err != nil {
 		return err
 	}

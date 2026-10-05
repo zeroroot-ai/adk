@@ -127,9 +127,6 @@ every component kind.`,
 			if u := resp.GetGibsonUrl(); u != "" {
 				fmt.Fprintf(w, "gibson_url:    %s\n", u)
 			}
-			if ec := resp.GetEnrollCommand(); ec != "" {
-				fmt.Fprintf(w, "\nenroll_command:\n  %s\n", ec)
-			}
 			return nil
 		},
 	}

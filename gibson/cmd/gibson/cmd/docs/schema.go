@@ -19,14 +19,14 @@ func schemaCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "schema [name]",
-		Short: "Emit JSON Schema for component.yaml / plugin.yaml",
+		Short: "Emit JSON Schema for plugin.yaml",
 		Long: `schema emits the JSON Schema (Draft 2020-12) for a Gibson YAML
 shape. With no name, lists available schemas. With one of the
 supported names, writes the schema to stdout (or --output <dir>).
 
 Editor and AI-coder integration: pipe the output into your project's
 schema config (e.g. yaml-language-server settings, JetBrains schema
-registry) and your editor will validate component.yaml / plugin.yaml
+registry) and your editor will validate plugin.yaml
 inline.
 
 Examples:

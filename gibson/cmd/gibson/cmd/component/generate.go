@@ -42,7 +42,7 @@ Examples:
 			return runGenerate(dir)
 		},
 	}
-	cmd.Flags().StringVarP(&dir, "dir", "d", ".", "component directory (containing component.yaml)")
+	cmd.Flags().StringVarP(&dir, "dir", "d", ".", "component directory")
 	return cmd
 }
 
