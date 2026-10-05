@@ -404,8 +404,8 @@ import (
 	// DataPolicy defines data handling policy for this node.
 	//
 	// Deprecated: data reuse + scoping are no longer node-declared. Under the
-	// ECS brain (ADR-0008) reuse is implicit in the event-sourced
-	// World and scoping flows from scope-relative identity (ADR-0002) +
+	// ECS brain (ADR-0101) reuse is implicit in the event-sourced
+	// World and scoping flows from scope-relative identity (ADR-0102) +
 	// ambient projection. The field is retained wire-compatibly for old
 	// definitions but is ignored by the engine.
 	dataPolicy?: #DataPolicy @protobuf(13,DataPolicy,name=data_policy,deprecated)
@@ -418,8 +418,8 @@ import (
 	// ReusePolicy declares how this node's I/O is scoped +
 	// reused across mission runs.
 	//
-	// Deprecated: superseded by the ECS brain (ADR-0008). Reuse is
-	// implicit in the World; scoping is via scope-relative identity (ADR-0002)
+	// Deprecated: superseded by the ECS brain (ADR-0101). Reuse is
+	// implicit in the World; scoping is via scope-relative identity (ADR-0102)
 	// + ambient projection. Retained wire-compatibly but ignored by the engine.
 	reusePolicy?: #ReusePolicy @protobuf(16,ReusePolicy,name=reuse_policy,deprecated)
 }
@@ -737,9 +737,9 @@ import (
 // ReusePolicy declares how a node's I/O is scoped + reused
 // across mission runs.
 //
-// Deprecated: superseded by the ECS brain (ADR-0008). Reuse is
+// Deprecated: superseded by the ECS brain (ADR-0101). Reuse is
 // implicit in the event-sourced World and scoping flows from scope-relative
-// identity (ADR-0002) + ambient projection, so node-declared reuse/scoping no
+// identity (ADR-0102) + ambient projection, so node-declared reuse/scoping no
 // longer has meaning. Retained wire-compatibly; ignored by the engine.
 #ReusePolicy: {
 	@protobuf(option deprecated=true)
@@ -829,9 +829,9 @@ import (
 
 // DataPolicy defines how data is handled for a node.
 //
-// Deprecated: superseded by the ECS brain (ADR-0008). Data
+// Deprecated: superseded by the ECS brain (ADR-0101). Data
 // handling (reuse + scoping) is now implicit in the event-sourced World and
-// scope-relative identity (ADR-0002) + ambient projection. Retained
+// scope-relative identity (ADR-0102) + ambient projection. Retained
 // wire-compatibly; ignored by the engine.
 #DataPolicy: {
 	@protobuf(option deprecated=true)
