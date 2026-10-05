@@ -41,9 +41,9 @@ field 100 (`DiscoveryResult`) from the tool's response.
 When *your own reasoning* establishes something about the target — a
 host, a service, a domain, a credential — emit it as a typed observation.
 You report what you saw; the brain resolves identity and topology and
-projects the World into the graph (ADR-0007). You never author graph
+projects the World into the graph (ADR-0107). You never author graph
 nodes or edges, and you never read the graph back — the relevant world
-state is ambiently projected into your task (ADR-0001).
+state is ambiently projected into your task (ADR-0101).
 
 ```go
 err := h.Observe(ctx, agent.HostObservation{

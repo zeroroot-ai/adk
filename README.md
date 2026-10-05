@@ -117,7 +117,7 @@ gibson mission catalog show <name>           # that mission's CUE, verbatim
 gibson mission submit --catalog <name> --target <uuid> --param k=v
                                              # run a shipped mission, rendered
                                              # server-side from the daemon's own
-                                             # definition (ADR-0018)
+                                             # definition (ADR-0118)
 
 # Targets
 gibson target create --name <n> --url <u>    # register a target, print its UUID

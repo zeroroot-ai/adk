@@ -10,7 +10,7 @@
 //   bankRef:   "<bank name or id>" (FIXME-bank fails at submit on purpose)
 //   the repository connectorRef and project
 //
-// Spec: gibson#1706 (ADR-0019), epic decisions 15 and 18.
+// Spec: gibson#1706 (ADR-0119), epic decisions 15 and 18.
 
 import missionv1 "github.com/zeroroot-ai/sdk/api/proto/gibson/mission/v1"
 import jobv1 "github.com/zeroroot-ai/sdk/api/proto/gibson/job/v1"

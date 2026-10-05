@@ -4,7 +4,7 @@
 // Package connector implements `gibson connector` subcommands: catalog,
 // enable, list, disable. All commands call ConnectorService on the Gibson
 // daemon (through Envoy) to manage the tenant connector lifecycle
-// (ADR-0014 Slice 4). A person enables a connector from the curated catalog
+// (ADR-0114 Slice 4). A person enables a connector from the curated catalog
 // and it becomes a running connector the connector-operator reconciles onto
 // ToolHive; the person does not author YAML. Authentication is the human
 // login session set up by `gibson login` (bearer token only; the daemon
@@ -31,7 +31,7 @@ func Command() *cobra.Command {
 		Use:   "connector",
 		Short: "Manage tenant connectors (ConnectorService)",
 		Long: `gibson connector — enable and manage connectors via
-ConnectorService on the Gibson daemon (ADR-0014 Slice 4). Pick a connector
+ConnectorService on the Gibson daemon (ADR-0114 Slice 4). Pick a connector
 from the curated catalog and it becomes a running connector the operator
 reconciles onto ToolHive. You do not write YAML. Authenticated as you: run ` +
 			"`gibson login`" + ` first.

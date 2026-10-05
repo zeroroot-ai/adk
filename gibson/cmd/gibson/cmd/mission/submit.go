@@ -48,7 +48,7 @@ func submitCmd() *cobra.Command {
 6. Print the returned mission ID.
 
 A catalog mission is rendered by the daemon from the definition
-compiled into its own binary (ADR-0018), so the graph is the
+compiled into its own binary (ADR-0118), so the graph is the
 checked-in one rather than a copy. Its parameters are a closed set:
 run ` + "`gibson mission catalog list`" + ` to see what each one
 declares. A catalog mission declares no target, so --target is
