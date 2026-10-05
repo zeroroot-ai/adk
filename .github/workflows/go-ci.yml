@@ -361,6 +361,7 @@ jobs:
     name: ci-required
     if: always()
     needs:
+      - permissive-floor
       - fast
       - heavy
       - check-fmt
@@ -396,3 +397,9 @@ jobs:
 
       - name: Every gate job is in ci-required's needs
         run: bash scripts/check-ci-required-coverage.sh .github/workflows/go-ci.yml
+
+  # ADR-0089: a permissive repo must not depend on a restrictive repo. Every
+  # go.mod here may require a first-party module only when it is sdk, adk,
+  # setec or ast-checks (zeroroot-ai/.github#202).
+  permissive-floor:
+    uses: zeroroot-ai/.github/.github/workflows/permissive-floor.yml@6815b30d4c26537972433711f0d86ddf73bb6c41 # v0.13.0
