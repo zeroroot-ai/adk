@@ -422,6 +422,11 @@ import (
 	// implicit in the World; scoping is via scope-relative identity (ADR-0102)
 	// + ambient projection. Retained wire-compatibly but ignored by the engine.
 	reusePolicy?: #ReusePolicy @protobuf(16,ReusePolicy,name=reuse_policy,deprecated)
+
+	// Research marks a node that gathers information from outside the
+	// targets of the mission. A research node has unrestricted egress. Every
+	// other node reaches only the targets bound to it.
+	research?: bool @protobuf(19,bool)
 }
 
 // AgentNodeConfig contains configuration for agent nodes.
