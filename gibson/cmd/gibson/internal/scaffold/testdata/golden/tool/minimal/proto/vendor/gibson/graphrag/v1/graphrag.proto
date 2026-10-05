@@ -1,6 +1,6 @@
 // Graph read-model types for proto-canonical operations.
 // This file provides DiscoveryResult — the tool response field 100 the
-// daemon auto-extracts into the World (ADR-0007) — and the graph node types.
+// daemon auto-extracts into the World (ADR-0107) — and the graph node types.
 
 syntax = "proto3";
 package gibson.graphrag.v1;
