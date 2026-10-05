@@ -149,8 +149,8 @@ func resolveInstall(kind, name string) (capabilitygrant.RuntimeCredential, strin
 		if k == "" {
 			k = "agent"
 		}
-		rc, url, err := resolveRuntimeCredential(k, name)
-		return rc, url, k, err
+		rc, dialURL, err := resolveRuntimeCredential(k, name)
+		return rc, dialURL, k, err
 	}
 
 	k, n := kind, name
@@ -174,8 +174,8 @@ func resolveInstall(kind, name string) (capabilitygrant.RuntimeCredential, strin
 		}
 	}
 
-	rc, url, err := resolveRuntimeCredential(k, n)
-	return rc, url, k, err
+	rc, dialURL, err := resolveRuntimeCredential(k, n)
+	return rc, dialURL, k, err
 }
 
 func callWhoAmI(ctx context.Context, rc capabilitygrant.RuntimeCredential, gibsonURL string) (*identitypb.WhoAmIResponse, error) {
@@ -348,7 +348,7 @@ func resolveRuntimeCredential(
 ) (capabilitygrant.RuntimeCredential, string, error) {
 	install, err := capabilitygrant.ResolveRuntimeInstall(kind, name)
 	if err != nil {
-		return capabilitygrant.RuntimeCredential{}, "", err
+		return capabilitygrant.RuntimeCredential{}, "", fmt.Errorf("resolve the runtime credential of %s %q: %w", kind, name, err)
 	}
 	return install.Credential, install.GibsonURL, nil
 }
