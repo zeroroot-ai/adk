@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.112.1](https://github.com/zeroroot-ai/adk/compare/v0.112.0...v0.112.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* **scaffold:** a scaffolded dockerfile copies only files the scaffold writes ([#109](https://github.com/zeroroot-ai/adk/issues/109)) ([399c1eb](https://github.com/zeroroot-ai/adk/commit/399c1eb5fc50dc77a4ce0129e826d4e340e87172)), closes [#108](https://github.com/zeroroot-ai/adk/issues/108)
+
 ## [0.112.0](https://github.com/zeroroot-ai/adk/compare/v0.111.0...v0.112.0) (2026-10-04)
 
 
