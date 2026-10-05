@@ -427,6 +427,21 @@ import (
 	// targets of the mission. A research node has unrestricted egress. Every
 	// other node reaches only the targets bound to it.
 	research?: bool @protobuf(19,bool)
+
+	// StartsFrom is the id of an earlier node of the same mission. The node
+	// starts from the state that the named node had when it ended, not from
+	// a fresh sandbox (ADR-0169). Empty means a fresh sandbox.
+	//
+	// The template node of a for_each node can carry it: each instance then
+	// starts from the same state, so one state becomes N branches.
+	//
+	// The node gets the network scope of its own node, never the scope of
+	// the node that it names.
+	//
+	// The daemon refuses at submit time an id that names no node, a later
+	// node, or the node itself. protovalidate cannot express a rule about a
+	// different node of the graph, so the rule here limits the length only.
+	startsFrom?: string @protobuf(20,string,name=starts_from,"(buf.validate.field).string=")
 }
 
 // AgentNodeConfig contains configuration for agent nodes.
