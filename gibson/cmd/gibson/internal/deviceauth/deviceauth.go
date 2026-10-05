@@ -13,8 +13,7 @@
 //
 // Tenant is NOT carried in the token: it is resolved after login from
 // the caller's FGA memberships (DaemonService.ListMyMemberships) and
-// stored alongside the token as the active tenant. See ADR-0043 and
-// ADR-0044.
+// stored alongside the token as the active tenant. See ADR-0093.
 //
 // Design reference: platform-operator#80 (the Zitadel device-grant
 // client), adk#115 (this flow). The dashboard-brokered device flow it

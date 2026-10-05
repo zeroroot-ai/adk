@@ -1,8 +1,7 @@
 name: go-ci
 
 # Thin caller for the canonical three-tier Go CI (Epic: cicd-efficiency, board
-# #44, slice S11b). See docs/architecture/CICD-CONTEXT.md and
-# docs/adr/0060-ci-runner-split-hosted-default-ephemeral-metal.md.
+# #44, slice S11b).
 #
 # Replaces the previous single ci.yml, which double-fired build/fmt/vet/test
 # (including `-race`) on both `pull_request` and `push:main`. This file
@@ -283,7 +282,7 @@ jobs:
   # `templates-check` stays `templates-check`.
   #
   # It lost `push: main` and `workflow_dispatch` in the move. Neither was a
-  # gate: merge_group is the authoritative pre-merge run (ADR-0060), and a
+  # gate: merge_group is the authoritative pre-merge run, and a
   # post-merge repeat of a PR gate reports after the decision is made.
   templates-check:
     if: github.event_name == 'pull_request'

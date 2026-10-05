@@ -1,6 +1,6 @@
 # Epic: cicd-efficiency (board #44), slice S11b. Consolidates adk's trivial
-# per-PR policy guard into a single job per
-# docs/architecture/CICD-CONTEXT.md decision #9 ("trivial guards ...
+# per-PR policy guard into a single job
+# ("trivial guards ...
 # consolidated into one policy-guards job"). Runs on both pull_request (fast
 # contributor signal) and merge_group (the authoritative gate) --
 # pr-title-lint.yml stays separate and pull_request-only since PR-title
