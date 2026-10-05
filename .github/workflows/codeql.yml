@@ -1,7 +1,7 @@
 name: CodeQL
 
-# Epic: cicd-efficiency (board #44), slice S11b. Scanner cadence per
-# docs/architecture/CICD-CONTEXT.md decision #9 originally chose merge_group
+# Epic: cicd-efficiency (board #44), slice S11b. The scanner cadence
+# originally chose merge_group
 # (the pre-merge gate) over push:main, plus the existing weekly deep scan.
 #
 # adk#206: that never actually worked. codeql-action/analyze uploads SARIF

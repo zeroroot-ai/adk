@@ -88,7 +88,6 @@ generate: regen-cue
 # setup — installs the build/lint/dead-code toolchain at the pinned
 # versions so `make build|test|check` succeed on a clean checkout. The Go
 # toolchain itself is pinned by gibson/go.mod (`go 1.27.1`) + .tool-versions.
-# Quality bar: docs/architecture/open-core/RESTRUCTURE-QUALITY-BARS.md §1.
 bootstrap:
 	@echo "bootstrap: installing pinned dev toolchain"
 	go install cuelang.org/go/cmd/cue@v0.16.1
