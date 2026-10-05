@@ -43,6 +43,10 @@ Steps:
    time.
 4. Check that target_ref, when set, is a target UUID. The daemon
    rejects any other value.
+5. Check that each starts_from names an earlier node: a node that
+   exists, is not the node itself, and is an ancestor of the node
+   through dependencies or edges (ADR-0169). The daemon applies the
+   same rule at submit time.
 
 Exits non-zero with the underlying library's error message on any
 failure. Use '-' as the file path to read from stdin.`,
@@ -60,6 +64,9 @@ failure. Use '-' as the file path to read from stdin.`,
 				return fmt.Errorf("validate: %w", err)
 			}
 			if err := checkTargetRef(def.GetTargetRef()); err != nil {
+				return fmt.Errorf("validate: %w", err)
+			}
+			if err := checkStartsFrom(def); err != nil {
 				return fmt.Errorf("validate: %w", err)
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), "ok")
