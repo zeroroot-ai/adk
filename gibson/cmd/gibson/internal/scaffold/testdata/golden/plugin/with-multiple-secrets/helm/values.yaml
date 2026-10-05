@@ -1,13 +1,13 @@
 # Helm wiring stub for the byte-identity-multi plugin.
 #
 # Add this fragment under the gibson umbrella chart's `plugins:` map to deploy
-# this plugin as a pod-runtime workload. The image is built and pushed by the
-# integrations-repo CI (one image per plugin module); pin the digest the CI
-# published rather than a moving tag before promoting to production.
+# this plugin as a pod-runtime workload. Build the image with `make image` and
+# push it to a registry that you own. Set `repository` to that image. Before
+# production, pin the digest of the pushed image rather than a moving tag.
 byte-identity-multi:
   enabled: true
   image:
-    repository: ghcr.io/zeroroot-ai/integrations/byte-identity-multi
+    repository: REPLACE-ME.example.com/byte-identity-multi
     tag: 0.99.0
   runtime: pod
   # secrets: the broker resolves any cred:/provider_config: names declared in

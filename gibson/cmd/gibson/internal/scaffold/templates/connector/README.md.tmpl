@@ -17,6 +17,8 @@ go test ./...   # schema-validation smoke test over connector.yaml
 
 ## Ship it
 
-Move `connector.yaml` into the integrations repo at
-`connectors/{{.Name}}/connector.yaml`. The repo CI runs the same schema check
-on every change.
+The platform catalog that gibson embeds holds one manifest for each
+connector. A first-party connector goes into `zeroroot-ai/gibson` as
+`internal/platform/componentcatalog/manifests/{{.Name}}.yaml`. The catalog
+loader of gibson runs the same shape check, and a tenant then enables the
+connector from the catalog.

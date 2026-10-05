@@ -2,24 +2,26 @@
 
 This directory is a **Gibson connector**: a declarative MCP integration
 (ADR-0065 R6). The single `connector.yaml` manifest IS the connector — there is
-no Go code and no image to build. gibson embeds first-party manifests and
-derives one catalog `Entry` per file; a self-hosted fork loads its own via the
-same path.
+no Go code and no image to build. gibson embeds first-party manifests in
+`internal/platform/componentcatalog/manifests/` and derives one catalog entry
+per file.
 
 ## The manifest schema
 
-`connector.yaml` fields (mirrors gibson's
-`internal/platform/connectorcatalog`):
+`connector.yaml` fields (mirrors a connector entry of gibson's
+`internal/platform/componentcatalog`). The first four are at the top level.
+The others are under `spec`:
 
 - `id` — stable catalog id and tool namespace (`mcp:<id>:<tool>`). Required.
-- `vendor` — the vendor this integrates. Metadata, not the key.
+- `kind` — always `connector`. Required.
 - `displayName` / `description` — catalog UI copy.
+- `egressAllow` — `host:port` targets the connector may reach.
+- `vendor` — the vendor this integrates. Metadata, not the key.
 - `shape` — `Remote` (a vendor-hosted MCP server gibson proxies) or `Hosted`
   (a container image gibson runs on ToolHive).
 - `endpoint` — the vendor MCP URL. **Remote only** (must be unset for Hosted).
 - `image` — the container image. **Hosted only** (must be unset for Remote).
 - `transport` — the MCP transport the server speaks (e.g. `streamable-http`).
-- `egressAllow` — `host:port` targets the connector may reach.
 - `auth` — `none | secret | oauth`.
 - `oauthScope` — the vendor OAuth scope hint when `auth: oauth`.
 
@@ -28,8 +30,8 @@ same path.
 `go test ./...` parses `connector.yaml` and applies the same shape invariants
 gibson's catalog loader enforces (a Remote needs an endpoint and no image; a
 Hosted needs an image and no endpoint; `auth` must be one of the three values).
-The test never imports gibson — the integrations repo must not depend on the
-platform.
+The test never imports gibson, so this directory builds with no platform
+code.
 
 ## Do not
 
