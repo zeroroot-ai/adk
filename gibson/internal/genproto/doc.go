@@ -7,7 +7,7 @@
 // By ADR-0058 the gibson.tenant.v1 services live in the closed gibson
 // platform protos, not the OSS SDK, so the CLI cannot import them from the
 // SDK the way it imports gibson.agentidentity.v1. ConnectorService
-// (ADR-0014 Slice 4) is one such service. Its Go client is generated HERE,
+// (ADR-0114 Slice 4) is one such service. Its Go client is generated HERE,
 // into the ADK module, from a client-only copy of connector.proto staged
 // under gibson/tenant/v1/.
 //

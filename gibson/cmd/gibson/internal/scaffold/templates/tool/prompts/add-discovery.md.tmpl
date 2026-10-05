@@ -78,9 +78,9 @@ func ptr[T any](v T) *T { return &v }
 
 After this tool returns, the daemon extracts field 100 into the World —
 the brain resolves identity and topology and projects it into the graph
-(ADR-0007). Components do **not** read the graph back: the calling agent
+(ADR-0107). Components do **not** read the graph back: the calling agent
 never queries nodes, and the relevant world state is ambiently projected
-into its task (ADR-0001). Your tool's job ends at filling field 100.
+into its task (ADR-0101). Your tool's job ends at filling field 100.
 
 ## Things to watch for
 

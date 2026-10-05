@@ -4,7 +4,7 @@ This directory is a **Gibson agent**. An agent is a stateful, LLM-driven
 gRPC process the Gibson daemon dials when its node in a mission DAG
 becomes active. The daemon supplies a `Harness` to your `Execute()`
 function; the harness owns LLMs, tools, plugins, and the typed
-observation emit path into the World (ADR-0007).
+observation emit path into the World (ADR-0107).
 
 This file is the contract. If a doc and the SDK source disagree, **the
 SDK source wins** — paths below are bare so you can grep them.
@@ -56,7 +56,7 @@ Defined in `core/sdk/agent/harness.go`. The harness gives you:
   sub-state) into the World. You report *what you saw*; the brain
   resolves identity and topology. You do **not** author graph nodes or
   edges, and you do **not** read the graph back — the relevant world
-  state is ambiently projected to you (ADR-0001, ADR-0007). See
+  state is ambiently projected to you (ADR-0101, ADR-0107). See
   `core/sdk/agent/observation.go`.
 - **Findings** — `h.SubmitFinding(ctx, f)`. A finding is an emit too; it
   flows into the World as an observation (you don't query findings back).

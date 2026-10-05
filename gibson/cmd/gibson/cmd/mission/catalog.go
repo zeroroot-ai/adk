@@ -19,7 +19,7 @@ import (
 // catalogCmd lists the missions the platform ships, and shows one.
 //
 // gibson compiles its first-party mission definitions into its own binary
-// (ADR-0018). Until the daemon served them, a person could neither see what
+// (ADR-0118). Until the daemon served them, a person could neither see what
 // the platform shipped nor run one of them — the only reader was the
 // agent-facing harness callback (gibson#631). So the answer to "what can I
 // run" lived in the gibson repository and nowhere a user could reach.
