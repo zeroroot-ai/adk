@@ -132,7 +132,6 @@ func TestAgentEnroll(t *testing.T) {
 				PrincipalId:    "pid-001",
 				BootstrapToken: "bootstrap-xyz",
 				GibsonUrl:      "https://gibson.example.com",
-				EnrollCommand:  "gibson component register --kind agent --token -",
 			}, nil
 		},
 	}
@@ -143,7 +142,10 @@ func TestAgentEnroll(t *testing.T) {
 	require.Contains(t, out, "pid-001")
 	require.Contains(t, out, "bootstrap_token: bootstrap-xyz")
 	require.Contains(t, out, "gibson.example.com")
-	require.Contains(t, out, "enroll_command")
+	// Enrollment needs no CLI verb (ADR-0097): the component reads
+	// GIBSON_BOOTSTRAP_TOKEN and GIBSON_URL when it starts, so no command is
+	// printed.
+	require.NotContains(t, out, "enroll_command")
 	// The OAuth client_secret path is gone (gibson#670): no secret is printed.
 	require.NotContains(t, out, "client_secret")
 }

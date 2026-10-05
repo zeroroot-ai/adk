@@ -197,13 +197,12 @@ Pre-spec callers update Makefiles and CI; the migration table is in
 
 ```
 my-tool/
-├── component.yaml                    # kind: tool, name, version
 ├── main.go                           # serve.Tool(&MyTool{})
 ├── api/proto/my-tool/v1/my-tool.proto   # field 100 = DiscoveryResult
 ├── proto/vendor/                     # vendored SDK protos (graphrag, taxonomy)
 ├── buf.yaml, buf.gen.yaml            # buf v2 + STANDARD lint
 ├── go.mod                            # pinned to SDK release
-├── Makefile                          # proto/build/test/register/run/image
+├── Makefile                          # proto/build/test/run/image
 ├── Dockerfile                        # distroless, non-root
 ├── README.md                         # 4-command human quickstart
 ├── AGENTS.md                         # ← the AI agent's contract

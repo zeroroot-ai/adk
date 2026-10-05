@@ -28,7 +28,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/enroll"
 	identitypb "github.com/zeroroot-ai/sdk/api/gen/gibson/identity/v1"
 	"github.com/zeroroot-ai/sdk/capabilitygrant"
 )
@@ -145,18 +144,18 @@ func callWhoAmISession(ctx context.Context) (*identitypb.WhoAmIResponse, error) 
 func resolveInstall(kind, name string) (capabilitygrant.RuntimeCredential, string, string, error) {
 	// Env override: the credential comes from GIBSON_AGENT_KEY regardless of
 	// on-disk installs. Kind defaults to the flag (or "agent") for rendering.
-	if os.Getenv(enroll.EnvRuntimeCredential) != "" {
+	if os.Getenv(capabilitygrant.EnvRuntimeCredential) != "" {
 		k := kind
 		if k == "" {
 			k = "agent"
 		}
-		rc, url, err := enroll.ResolveRuntimeCredential(k, name)
+		rc, url, err := resolveRuntimeCredential(k, name)
 		return rc, url, k, err
 	}
 
 	k, n := kind, name
 	if k == "" {
-		installs, err := enroll.ListInstalls()
+		installs, err := capabilitygrant.ListInstalls()
 		if err != nil {
 			return capabilitygrant.RuntimeCredential{}, "", "", err
 		}
@@ -175,7 +174,7 @@ func resolveInstall(kind, name string) (capabilitygrant.RuntimeCredential, strin
 		}
 	}
 
-	rc, url, err := enroll.ResolveRuntimeCredential(k, n)
+	rc, url, err := resolveRuntimeCredential(k, n)
 	return rc, url, k, err
 }
 
@@ -340,4 +339,16 @@ func mustWriter(v interface{}) interface{ Write([]byte) (int, error) } {
 
 func stdoutWriter(v interface{ Write([]byte) (int, error) }) interface{ Write([]byte) (int, error) } {
 	return v
+}
+
+// resolveRuntimeCredential returns the runtime credential and the dial URL of a
+// registered component: the environment override first, then the install file.
+func resolveRuntimeCredential(
+	kind, name string,
+) (capabilitygrant.RuntimeCredential, string, error) {
+	install, err := capabilitygrant.ResolveRuntimeInstall(kind, name)
+	if err != nil {
+		return capabilitygrant.RuntimeCredential{}, "", err
+	}
+	return install.Credential, install.GibsonURL, nil
 }

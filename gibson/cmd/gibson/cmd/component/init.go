@@ -36,7 +36,7 @@ func initCmd() *cobra.Command {
 templates. The kind selects which template set to render and what file
 shape the new directory has:
 
-  agent:      component.yaml + main.go (sdk.NewAgent + sdk.ServeAgent) +
+  agent:      main.go (sdk.NewAgent + sdk.ServeAgent) +
               go.mod + Makefile + Dockerfile + README + AGENTS.md +
               CLAUDE.md + prompts/ + .claude/settings.json
 
