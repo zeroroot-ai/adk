@@ -333,10 +333,10 @@ func unixOrDash(sec int64) string {
 
 func listCmd() *cobra.Command {
 	var (
-		cf     connFlags
-		prefix string
-		limit  int32
-		offset int32
+		cf        connFlags
+		prefix    string
+		pageSize  int32
+		pageToken string
 	)
 	c := &cobra.Command{
 		Use:   "list",
@@ -347,7 +347,10 @@ The names printed are exact stored keys, which is what a mission's
 credential_names needs, so they can be copied without translation.
 
   gibson secret list
-  gibson secret list --prefix cred:`,
+  gibson secret list --prefix cred:
+
+When more secrets exist than one page holds, the command prints the token
+of the next page. Pass it to --page-token to read that page.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, cleanup, ctx, cancel, err := cf.dial(cmd.Context())
@@ -359,8 +362,8 @@ credential_names needs, so they can be copied without translation.
 
 			resp, err := client.ListSecrets(ctx, &secretsv1.ListSecretsRequest{
 				NamePrefix: prefix,
-				Limit:      limit,
-				Offset:     offset,
+				PageSize:   pageSize,
+				PageToken:  pageToken,
 			})
 			if err != nil {
 				return fmt.Errorf("ListSecrets: %w", err)
@@ -379,14 +382,24 @@ credential_names needs, so they can be copied without translation.
 			}
 			_ = w.Flush()
 			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "\n%d shown, %d total\n", len(secrets), resp.GetTotal())
+			printNextPage(cmd, resp.GetNextPageToken())
 			return nil
 		},
 	}
 	cf.bind(c)
 	c.Flags().StringVar(&prefix, "prefix", "", "Only names beginning with this prefix (e.g. cred:)")
-	c.Flags().Int32Var(&limit, "limit", 0, "Maximum number to return (0 = server default)")
-	c.Flags().Int32Var(&offset, "offset", 0, "Number to skip")
+	c.Flags().Int32Var(&pageSize, "page-size", 0, "Maximum number to return (0 = server default)")
+	c.Flags().StringVar(&pageToken, "page-token", "", "Token of the page to read, from the previous page")
 	return c
+}
+
+// printNextPage tells the reader how to read the next page, when one exists.
+// It writes to stderr, so stdout stays the table alone.
+func printNextPage(cmd *cobra.Command, token string) {
+	if token == "" {
+		return
+	}
+	_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "next page: --page-token %s\n", token)
 }
 
 func deleteCmd() *cobra.Command {

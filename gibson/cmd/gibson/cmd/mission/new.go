@@ -51,11 +51,10 @@ func resolveTarget(ctx context.Context, gibsonURL, want string) (id, name string
 	}
 	defer func() { _ = conn.Close() }()
 
-	resp, err := daemonv1.NewDaemonServiceClient(conn).ListTargets(ctx, &daemonv1.ListTargetsRequest{})
+	targets, err := allTargets(ctx, daemonv1.NewDaemonServiceClient(conn))
 	if err != nil {
-		return "", "", fmt.Errorf("ListTargets: %w", err)
+		return "", "", err
 	}
-	targets := resp.GetTargets()
 
 	if len(targets) == 0 {
 		return "", "", errors.New(
@@ -78,6 +77,31 @@ func resolveTarget(ctx context.Context, gibsonURL, want string) (id, name string
 	return "", "", fmt.Errorf(
 		"this tenant has %d targets, so pick one with --target <name-or-uuid>:\n%s",
 		len(targets), targetLines(targets))
+}
+
+// allTargets reads each page of ListTargets. A name lookup on the first page
+// alone would miss a target on a later page.
+func allTargets(ctx context.Context, client daemonv1.DaemonServiceClient) ([]*targetv1.Target, error) {
+	var (
+		targets []*targetv1.Target
+		token   string
+		seen    = map[string]bool{}
+	)
+	for {
+		resp, err := client.ListTargets(ctx, &daemonv1.ListTargetsRequest{PageToken: token})
+		if err != nil {
+			return nil, fmt.Errorf("ListTargets: %w", err)
+		}
+		targets = append(targets, resp.GetTargets()...)
+		token = resp.GetNextPageToken()
+		if token == "" {
+			return targets, nil
+		}
+		if seen[token] {
+			return nil, fmt.Errorf("ListTargets: the server returned the page token %q twice", token)
+		}
+		seen[token] = true
+	}
 }
 
 func targetLines(targets []*targetv1.Target) string {
