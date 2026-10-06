@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.113.1](https://github.com/zeroroot-ai/adk/compare/v0.113.0...v0.113.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **deps:** require grpc v1.83.2, the fixed line ([#157](https://github.com/zeroroot-ai/adk/issues/157)) ([6ec8c0d](https://github.com/zeroroot-ai/adk/commit/6ec8c0d1b7c25fbcdd513e9ceff278b6ceeefdf3)), closes [#150](https://github.com/zeroroot-ai/adk/issues/150)
+
 ## [0.113.0](https://github.com/zeroroot-ai/adk/compare/v0.112.2...v0.113.0) (2026-10-06)
 
 
