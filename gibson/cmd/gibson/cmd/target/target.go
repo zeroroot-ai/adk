@@ -136,13 +136,13 @@ func createCmd() *cobra.Command {
 
 func listCmd() *cobra.Command {
 	var (
-		cf       connFlags
-		provider string
-		ttype    string
-		status   string
-		tags     []string
-		limit    int32
-		offset   int32
+		cf        connFlags
+		provider  string
+		ttype     string
+		status    string
+		tags      []string
+		pageSize  int32
+		pageToken string
 	)
 	c := &cobra.Command{
 		Use:   "list",
@@ -162,9 +162,9 @@ func listCmd() *cobra.Command {
 					Type:     ttype,
 					Status:   status,
 					Tags:     tags,
-					Limit:    limit,
-					Offset:   offset,
 				},
+				PageSize:  pageSize,
+				PageToken: pageToken,
 			})
 			if err != nil {
 				return fmt.Errorf("ListTargets: %w", err)
@@ -174,7 +174,13 @@ func listCmd() *cobra.Command {
 			for _, t := range resp.GetTargets() {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", t.GetId(), t.GetName(), t.GetType(), t.GetStatus())
 			}
-			return w.Flush()
+			if err := w.Flush(); err != nil {
+				return err
+			}
+			if next := resp.GetNextPageToken(); next != "" {
+				fmt.Fprintf(cmd.ErrOrStderr(), "next page: --page-token %s\n", next)
+			}
+			return nil
 		},
 	}
 	cf.bind(c)
@@ -182,8 +188,8 @@ func listCmd() *cobra.Command {
 	c.Flags().StringVar(&ttype, "type", "", "Filter by type")
 	c.Flags().StringVar(&status, "status", "", "Filter by status")
 	c.Flags().StringSliceVar(&tags, "tag", nil, "Filter by tag (repeatable; target must carry all)")
-	c.Flags().Int32Var(&limit, "limit", 0, "Max results (0 = server default)")
-	c.Flags().Int32Var(&offset, "offset", 0, "Skip the first N results")
+	c.Flags().Int32Var(&pageSize, "page-size", 0, "Max results (0 = server default)")
+	c.Flags().StringVar(&pageToken, "page-token", "", "Token of the page to read, from the previous page")
 	return c
 }
 

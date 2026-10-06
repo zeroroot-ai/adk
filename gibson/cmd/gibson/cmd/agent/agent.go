@@ -171,17 +171,17 @@ func agentListCmd() *cobra.Command {
 				req.KindFilter = pk
 			}
 
-			resp, err := agentidentityv1.NewAgentIdentityServiceClient(conn).ListAgentIdentities(ctx, req)
+			identities, err := allIdentities(ctx, agentidentityv1.NewAgentIdentityServiceClient(conn), req)
 			if err != nil {
-				return fmt.Errorf("ListAgentIdentities: %w", err)
+				return err
 			}
-			if len(resp.GetIdentities()) == 0 {
+			if len(identities) == 0 {
 				fmt.Fprintln(cmd.OutOrStdout(), "(no identities)")
 				return nil
 			}
 			w := cmd.OutOrStdout()
 			fmt.Fprintf(w, "%-36s  %-8s  %-24s  %s\n", "PRINCIPAL ID", "KIND", "NAME", "REVOKED")
-			for _, id := range resp.GetIdentities() {
+			for _, id := range identities {
 				kindStr := strings.ToLower(strings.TrimPrefix(id.GetKind().String(), "PRINCIPAL_KIND_"))
 				revoked := ""
 				if id.GetRevoked() {
@@ -232,4 +232,33 @@ accepted by the daemon. This action is irreversible.`,
 	c.Flags().StringVar(&gibsonURL, "gibson-url", "", "Override the daemon URL (defaults to the login session).")
 	c.Flags().DurationVar(&timeout, "timeout", 30*time.Second, "RPC deadline")
 	return c
+}
+
+// allIdentities reads each page of ListAgentIdentities. req holds the filter,
+// and its page token changes from page to page.
+func allIdentities(
+	ctx context.Context,
+	client agentidentityv1.AgentIdentityServiceClient,
+	req *agentidentityv1.ListAgentIdentitiesRequest,
+) ([]*agentidentityv1.AgentIdentity, error) {
+	var (
+		out  []*agentidentityv1.AgentIdentity
+		seen = map[string]bool{}
+	)
+	for {
+		resp, err := client.ListAgentIdentities(ctx, req)
+		if err != nil {
+			return nil, fmt.Errorf("ListAgentIdentities: %w", err)
+		}
+		out = append(out, resp.GetIdentities()...)
+		next := resp.GetNextPageToken()
+		if next == "" {
+			return out, nil
+		}
+		if seen[next] {
+			return nil, fmt.Errorf("ListAgentIdentities: the server returned the page token %q twice", next)
+		}
+		seen[next] = true
+		req.PageToken = next
+	}
 }
