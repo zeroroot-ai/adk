@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.113.0](https://github.com/zeroroot-ai/adk/compare/v0.112.2...v0.113.0) (2026-10-06)
+
+
+### Features
+
+* **mission:** validate checks that starts_from names an earlier node ([#142](https://github.com/zeroroot-ai/adk/issues/142)) ([3785ea3](https://github.com/zeroroot-ai/adk/commit/3785ea31e224f17a3a7c42db916e9162fbb1d6e0))
+* **release:** each release also tags the Go module as gibson/vX.Y.Z ([#151](https://github.com/zeroroot-ai/adk/issues/151)) ([e46c3da](https://github.com/zeroroot-ai/adk/commit/e46c3dabc114a34d12661a2404b872311e7113c2))
+
+
+### Bug Fixes
+
+* **cli:** list commands page with page_size and page_token ([#152](https://github.com/zeroroot-ai/adk/issues/152)) ([68220a1](https://github.com/zeroroot-ai/adk/commit/68220a1fc8a7a02d8c0a2d751ee695498f865089))
+* **scaffold:** the plugin and connector scaffolds name no integrations repo ([#137](https://github.com/zeroroot-ai/adk/issues/137)) ([728cbeb](https://github.com/zeroroot-ai/adk/commit/728cbeb8c8f08f11c7264aac3bb18f68afcc92f2))
+* **scaffold:** the vendored graphrag proto cites a live ADR, and the guard runs ([#144](https://github.com/zeroroot-ai/adk/issues/144)) ([534f0f8](https://github.com/zeroroot-ai/adk/commit/534f0f8e37fad835643f5f3de5f1186c32416a0c))
+
 ## [0.112.2](https://github.com/zeroroot-ai/adk/compare/v0.112.1...v0.112.2) (2026-10-05)
 
 
