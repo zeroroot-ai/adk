@@ -34,16 +34,14 @@ const DefaultGibsonURL = "https://api.zeroroot.ai"
 // field name that hints at a credential.
 var ErrCredentialField = errors.New("workspace: credentials must not be stored in workspace.yaml")
 
-// Resolution reports the resolved values and which source they came
-// from, so subcommands can include a friendly hint in error messages.
+// Resolution reports the resolved values.
 type Resolution struct {
 	GibsonURL string
-	Source    string // "flag" | "env" | "local-workspace" | "global-workspace" | "default"
 }
 
 // Resolve walks the precedence chain (flag → env → local workspace
 // (parent walk) → global workspace → DefaultGibsonURL) and returns the
-// first non-empty gibson_url, plus the source label.
+// first non-empty gibson_url.
 //
 // flagURL is the explicit --gibson-url value from the cobra layer; pass
 // "" if not provided.
@@ -54,18 +52,18 @@ type Resolution struct {
 // a tenant install). Workspace config carries no tenant pin.
 func Resolve(flagURL string) (*Resolution, error) {
 	if flagURL != "" {
-		return &Resolution{GibsonURL: flagURL, Source: "flag"}, nil
+		return &Resolution{GibsonURL: flagURL}, nil
 	}
 	if env := os.Getenv("GIBSON_URL"); env != "" {
-		return &Resolution{GibsonURL: env, Source: "env"}, nil
+		return &Resolution{GibsonURL: env}, nil
 	}
 	if w, _, err := loadLocal(); err == nil && w != nil && w.GibsonURL != "" {
-		return &Resolution{GibsonURL: w.GibsonURL, Source: "local-workspace"}, nil
+		return &Resolution{GibsonURL: w.GibsonURL}, nil
 	}
 	if w, err := loadGlobal(); err == nil && w != nil && w.GibsonURL != "" {
-		return &Resolution{GibsonURL: w.GibsonURL, Source: "global-workspace"}, nil
+		return &Resolution{GibsonURL: w.GibsonURL}, nil
 	}
-	return &Resolution{GibsonURL: DefaultGibsonURL, Source: "default"}, nil
+	return &Resolution{GibsonURL: DefaultGibsonURL}, nil
 }
 
 // LocalPath returns the conventional local workspace path
