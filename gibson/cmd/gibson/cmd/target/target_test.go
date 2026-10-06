@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/deviceauth"
 	daemonv1 "github.com/zeroroot-ai/sdk/api/gen/gibson/daemon/v1"
@@ -134,6 +135,8 @@ func TestCreate_PrintsMintedUUID(t *testing.T) {
 		createFn: func(_ context.Context, req *daemonv1.CreateTargetRequest) (*daemonv1.CreateTargetResponse, error) {
 			require.Equal(t, "victim", req.GetTarget().GetName())
 			require.Equal(t, "llm_chat", req.GetTarget().GetType())
+			_, err := uuid.Parse(req.GetIdempotencyKey())
+			require.NoError(t, err, "CreateTarget must carry a UUID idempotency key (adk#136)")
 			return &daemonv1.CreateTargetResponse{TargetId: "tgt-uuid-1"}, nil
 		},
 	}

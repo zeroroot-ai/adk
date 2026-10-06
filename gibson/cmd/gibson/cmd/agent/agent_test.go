@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/deviceauth"
 	agentidentityv1 "github.com/zeroroot-ai/sdk/api/gen/gibson/agentidentity/v1"
@@ -128,6 +129,8 @@ func TestAgentEnroll(t *testing.T) {
 		enrollFn: func(_ context.Context, req *agentidentityv1.CreateAgentIdentityRequest) (*agentidentityv1.CreateAgentIdentityResponse, error) {
 			require.Equal(t, "my-agent", req.GetName())
 			require.Equal(t, agentidentityv1.PrincipalKind_PRINCIPAL_KIND_AGENT, req.GetKind())
+			_, err := uuid.Parse(req.GetIdempotencyKey())
+			require.NoError(t, err, "CreateAgentIdentity must carry a UUID idempotency key (adk#136)")
 			return &agentidentityv1.CreateAgentIdentityResponse{
 				PrincipalId:    "pid-001",
 				BootstrapToken: "bootstrap-xyz",

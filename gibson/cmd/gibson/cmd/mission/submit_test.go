@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/deviceauth"
 	daemonv1 "github.com/zeroroot-ai/sdk/api/gen/gibson/daemon/v1"
@@ -106,14 +107,19 @@ func TestSubmitCmd_fullRound(t *testing.T) {
 	const targetID = "9f1d0c4e-2c9a-4a6e-9a58-2c4b7f0c1a11"
 
 	var ranMission string
+	// Each create, run and start call carries its own idempotency key, so a
+	// retry of one call is safe and two calls never share a key (adk#136).
+	keys := make(chan string, 3)
 	svc := &fakeDaemonServer{
 		createDefFn: func(_ context.Context, req *daemonv1.CreateMissionDefinitionRequest) (*daemonv1.CreateMissionDefinitionResponse, error) {
 			require.Equal(t, "roundtrip", req.GetDefinition().GetName())
+			keys <- req.GetIdempotencyKey()
 			return &daemonv1.CreateMissionDefinitionResponse{MissionDefinitionId: defID}, nil
 		},
 		createMsnFn: func(_ context.Context, req *daemonv1.CreateMissionRequest) (*daemonv1.CreateMissionResponse, error) {
 			require.Equal(t, defID, req.GetMissionDefinitionId())
 			require.Equal(t, targetID, req.GetTargetId(), "the bound target must reach CreateMission")
+			keys <- req.GetIdempotencyKey()
 			return &daemonv1.CreateMissionResponse{
 				Mission: &daemonv1.Mission{Id: msnID},
 			}, nil
@@ -121,6 +127,7 @@ func TestSubmitCmd_fullRound(t *testing.T) {
 		runMsnFn: func(req *daemonv1.RunMissionRequest, _ grpc.ServerStreamingServer[daemonv1.RunMissionResponse]) error {
 			ranMission = req.GetMissionDefinitionId()
 			require.Equal(t, targetID, req.GetTargetId(), "the bound target must reach RunMission")
+			keys <- req.GetIdempotencyKey()
 			return nil
 		},
 	}
@@ -137,6 +144,16 @@ func TestSubmitCmd_fullRound(t *testing.T) {
 	require.NoError(t, cmd.Execute())
 	require.Contains(t, buf.String(), msnID)
 	require.Equal(t, defID, ranMission, "submit must actually run the mission, not just define it")
+
+	close(keys)
+	seen := map[string]bool{}
+	for k := range keys {
+		_, err := uuid.Parse(k)
+		require.NoError(t, err, "each call must carry a UUID idempotency key")
+		require.False(t, seen[k], "two calls must not share an idempotency key")
+		seen[k] = true
+	}
+	require.Len(t, seen, 3, "CreateMissionDefinition, CreateMission and RunMission each carry a key")
 }
 
 // TestSubmitCmd_noTargetFailsWithGuidance is the other half of #176: a mission
