@@ -59,7 +59,7 @@ jobs:
   # ---- fast tier (pull_request): reusable mod-tidy/vet/build/test ----
   fast:
     if: github.event_name == 'pull_request'
-    uses: zeroroot-ai/.github/.github/workflows/reusable-go-ci.yml@40c67fd77152f2c4924abccbd992dbca065f325b # v0.8.2
+    uses: zeroroot-ai/.github/.github/workflows/reusable-go-ci.yml@eaa991cb73a79080f5ce1223b2f5332c47e02c70 # v0.10.5
     with:
       tier: fast
       go-mod-path: gibson
@@ -68,7 +68,7 @@ jobs:
   # ---- heavy tier (merge_group): reusable race + govulncheck ----
   heavy:
     if: github.event_name == 'merge_group'
-    uses: zeroroot-ai/.github/.github/workflows/reusable-go-ci.yml@40c67fd77152f2c4924abccbd992dbca065f325b # v0.8.2
+    uses: zeroroot-ai/.github/.github/workflows/reusable-go-ci.yml@eaa991cb73a79080f5ce1223b2f5332c47e02c70 # v0.10.5
     with:
       tier: heavy
       go-mod-path: gibson
@@ -271,7 +271,7 @@ jobs:
   # task brief.
   no-monorepo-shortcuts:
     if: github.event_name == 'pull_request'
-    uses: zeroroot-ai/.github/.github/workflows/no-monorepo-shortcuts.yml@40c67fd77152f2c4924abccbd992dbca065f325b # v0.8.2
+    uses: zeroroot-ai/.github/.github/workflows/no-monorepo-shortcuts.yml@eaa991cb73a79080f5ce1223b2f5332c47e02c70 # v0.10.5
 
   # ---------------------------------------------------------------------------
   # templates-check — moved in from templates.yml so ci-required covers it.
