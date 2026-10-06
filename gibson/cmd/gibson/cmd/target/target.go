@@ -175,10 +175,10 @@ func listCmd() *cobra.Command {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", t.GetId(), t.GetName(), t.GetType(), t.GetStatus())
 			}
 			if err := w.Flush(); err != nil {
-				return err
+				return fmt.Errorf("write the target table: %w", err)
 			}
 			if next := resp.GetNextPageToken(); next != "" {
-				fmt.Fprintf(cmd.ErrOrStderr(), "next page: --page-token %s\n", next)
+				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "next page: --page-token %s\n", next)
 			}
 			return nil
 		},
