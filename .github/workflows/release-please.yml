@@ -34,6 +34,37 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      # The Go module of this repo is github.com/zeroroot-ai/adk/gibson, in the
+      # directory gibson/. Go resolves a version of a nested module only from
+      # a tag with the directory as its prefix: gibson/vX.Y.Z. The tag vX.Y.Z
+      # alone names no module, so `go get ...@latest` got a pseudo-version.
+      # This step puts gibson/vX.Y.Z on the commit of each release tag.
+      - name: Tag the nested Go module
+        if: steps.release.outputs.releases_created == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ steps.release.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::release tag '$TAG' is not vX.Y.Z"; exit 1 ;;
+          esac
+          sha=$(gh api "repos/$REPO/commits/$TAG" --jq .sha)
+          module_tag="gibson/$TAG"
+          if have=$(gh api "repos/$REPO/commits/$module_tag" --jq .sha 2>/dev/null); then
+            if [ "$have" != "$sha" ]; then
+              echo "::error::$module_tag exists on $have, and $TAG is on $sha"
+              exit 1
+            fi
+            echo "$module_tag already names $sha"
+            exit 0
+          fi
+          gh api -X POST "repos/$REPO/git/refs" \
+            -f ref="refs/tags/$module_tag" -f sha="$sha" >/dev/null
+          echo "Tagged $module_tag on $sha"
+
   # ---------------------------------------------------------------------------
   # Tell zeroroot-ai/docs-site to refresh its committed `cli-spec.json` from
   # this release's `gibson docs cli` output (docs-site#26).
