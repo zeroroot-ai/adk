@@ -1,5 +1,4 @@
-BINARY   := byte-identity
-MANIFEST := ./plugin.yaml
+BINARY := byte-identity
 
 .PHONY: build test run image
 

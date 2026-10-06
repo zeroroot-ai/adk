@@ -13,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zeroroot-ai/sdk/plugin/manifest"
 
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/scaffold"
 )
@@ -50,7 +49,7 @@ var pluginGoldenCases = []goldenCase{
 			Version: "1.2.3",
 			Kind:    scaffold.KindPlugin,
 			Secrets: []scaffold.SecretInput{
-				{Name: "cred:api_key", Scope: "startup", Rotation: "live"},
+				{Name: "cred:api_key"},
 			},
 		},
 	},
@@ -61,8 +60,8 @@ var pluginGoldenCases = []goldenCase{
 			Version: "0.99.0",
 			Kind:    scaffold.KindPlugin,
 			Secrets: []scaffold.SecretInput{
-				{Name: "cred:db_password", Scope: "startup", Rotation: "live"},
-				{Name: "cred:token", Scope: "per_call", Rotation: "restart"},
+				{Name: "cred:db_password"},
+				{Name: "cred:token"},
 			},
 		},
 	},
@@ -101,7 +100,7 @@ func TestRender_AllFilesPresent(t *testing.T) {
 		Version: "0.1.0",
 		Kind:    scaffold.KindPlugin,
 		Secrets: []scaffold.SecretInput{
-			{Name: "cred:api_key", Scope: "startup", Rotation: "live"},
+			{Name: "cred:api_key"},
 		},
 	}
 
@@ -109,7 +108,6 @@ func TestRender_AllFilesPresent(t *testing.T) {
 	require.NoError(t, err)
 
 	wantFiles := []string{
-		"plugin.yaml",
 		"go.mod",
 		"handler.go",
 		"handler_test.go",
@@ -123,36 +121,43 @@ func TestRender_AllFilesPresent(t *testing.T) {
 	for _, name := range wantFiles {
 		assert.Contains(t, files, name, "expected output file %q to be present", name)
 	}
+	assert.NotContains(t, files, "plugin.yaml", "a plugin declares itself in code (ADR-0097)")
 }
 
 func TestRender_DefaultVersion(t *testing.T) {
 	files, err := scaffold.Render(scaffold.ScaffoldInput{Name: "default-ver", Kind: scaffold.KindPlugin})
 	require.NoError(t, err)
-	assert.Contains(t, string(files["plugin.yaml"]), "version: 0.1.0")
+	assert.Contains(t, string(files["handler.go"]), `pluginVersion = "0.1.0"`)
 }
 
-func TestRender_ManifestValidates(t *testing.T) {
-	input := scaffold.ScaffoldInput{
+// TestRender_PluginDeclaresItselfInCode: the handler names the plugin, its
+// version and its method, and resolves each startup secret in OnStart, with
+// no manifest file (ADR-0097).
+func TestRender_PluginDeclaresItselfInCode(t *testing.T) {
+	files, err := scaffold.Render(scaffold.ScaffoldInput{
 		Name:    "smoketest",
 		Version: "0.2.0",
 		Kind:    scaffold.KindPlugin,
-		Secrets: []scaffold.SecretInput{
-			{Name: "cred:token", Scope: "per_call", Rotation: "restart"},
-		},
-	}
-
-	files, err := scaffold.Render(input)
+		Secrets: []scaffold.SecretInput{{Name: "cred:token"}},
+	})
 	require.NoError(t, err)
+	handler := string(files["handler.go"])
+	for _, want := range []string{
+		`pluginName    = "smoketest"`,
+		`pluginVersion = "0.2.0"`,
+		"plugin.WithName(pluginName)",
+		"plugin.WithVersion(pluginVersion)",
+		`plugin.WithHandler("Echo", "Echo returns the request message unchanged.", echo)`,
+		`"cred:token",`,
+		"OnStart: requireSecrets",
+	} {
+		assert.Contains(t, handler, want)
+	}
+	assert.NotContains(t, handler, "WithManifest")
 
-	manifestBytes := files["plugin.yaml"]
-	require.NotEmpty(t, manifestBytes)
-
-	m, err := manifest.LoadBytes(manifestBytes)
-	require.NoError(t, err, "rendered plugin.yaml must validate against the manifest schema")
-	assert.Equal(t, "smoketest", m.Metadata.Name)
-	assert.Equal(t, "0.2.0", m.Metadata.Version)
-	require.Len(t, m.Spec.Secrets, 1)
-	assert.Equal(t, "cred:token", m.Spec.Secrets[0].Name)
+	plain, err := scaffold.Render(scaffold.ScaffoldInput{Name: "plain", Kind: scaffold.KindPlugin})
+	require.NoError(t, err)
+	assert.NotContains(t, string(plain["handler.go"]), "requireSecrets", "a plugin with no startup secret has no start check")
 }
 
 // TestRender_PluginGoldenFiles is the migration's no-regression contract
@@ -260,7 +265,7 @@ func TestRender_RejectsSecretsForNonPlugin(t *testing.T) {
 	_, err := scaffold.Render(scaffold.ScaffoldInput{
 		Name:    "x",
 		Kind:    scaffold.KindAgent,
-		Secrets: []scaffold.SecretInput{{Name: "cred:x", Scope: "startup", Rotation: "live"}},
+		Secrets: []scaffold.SecretInput{{Name: "cred:x"}},
 	})
 	require.Error(t, err)
 }
@@ -271,18 +276,11 @@ func TestParseSecretFlag(t *testing.T) {
 		want    scaffold.SecretInput
 		wantErr bool
 	}{
-		{
-			input: "cred:api_key=startup:live",
-			want:  scaffold.SecretInput{Name: "cred:api_key", Scope: "startup", Rotation: "live"},
-		},
-		{
-			input: "cred:db_password=per_call:restart",
-			want:  scaffold.SecretInput{Name: "cred:db_password", Scope: "per_call", Rotation: "restart"},
-		},
-		{input: "no-equals", wantErr: true},
-		{input: "name=badscope:live", wantErr: true},
-		{input: "name=startup:badrotation", wantErr: true},
-		{input: "name=startup", wantErr: true},
+		{input: "cred:api_key", want: scaffold.SecretInput{Name: "cred:api_key"}},
+		{input: " provider_config:openai ", want: scaffold.SecretInput{Name: "provider_config:openai"}},
+		{input: "cred:api_key=startup:live", wantErr: true},
+		{input: "no-prefix", wantErr: true},
+		{input: "", wantErr: true},
 	}
 
 	for _, tc := range tests {

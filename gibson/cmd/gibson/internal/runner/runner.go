@@ -6,8 +6,7 @@
 // It exec's the component's compiled binary, forwards stdout/stderr,
 // hooks SIGINT/SIGTERM and propagates them to the child, waits up to
 // DrainTimeout for graceful shutdown before SIGKILL, and surfaces the
-// child's exit code (notably treating exit 75 as the SDK's plugin
-// rotation contract — the parent does not interpret 75 as failure).
+// child's exit code.
 package runner
 
 import (
@@ -21,11 +20,6 @@ import (
 	"syscall"
 	"time"
 )
-
-// ExitCodeRotation is the conventional exit code the SDK's plugin
-// runtime uses to signal "secret rotated; restart me". Documented in
-// AGENTS.md (plugin kind).
-const ExitCodeRotation = 75
 
 // RunOptions configures a single supervised run.
 type RunOptions struct {

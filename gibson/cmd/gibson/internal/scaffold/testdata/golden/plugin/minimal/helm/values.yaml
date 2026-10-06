@@ -10,5 +10,5 @@ byte-identity:
     repository: REPLACE-ME.example.com/byte-identity
     tag: 0.1.0
   runtime: pod
-  # secrets: the broker resolves any cred:/provider_config: names declared in
-  # plugin.yaml; nothing is passed through Helm values.
+  # secrets: a tenant admin grants the plugin its secrets in the deploy wizard,
+  # and the broker resolves them; nothing is passed through Helm values.

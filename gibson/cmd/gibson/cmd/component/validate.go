@@ -32,10 +32,11 @@ directory cannot imply, so it is the one thing you still state.
   agent:  main.go is present and parses
   tool:   agent checks, plus proto field 100 = DiscoveryResult, plus
           buf lint when buf is on PATH
-  plugin: agent checks, plus the SDK manifest validator on plugin.yaml
+  plugin: Go source of package main at the root, and each file parses;
+          the plugin declares itself in code (ADR-0097)
 
 Paths come from the directory rather than from a manifest: main.go at the
-root, plugin.yaml at the root, and the tool proto at
+root, and the tool proto at
 api/proto/gibson/tools/<name>/v1/<name>.proto, with <name> the directory
 name minus hyphens.
 

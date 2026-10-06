@@ -29,7 +29,7 @@ func runCmd() *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "run",
-		Short: "Run the compiled component binary, supervising signals + exit code 75",
+		Short: "Run the compiled component binary, supervising its signals",
 		Long: `run starts the compiled component binary in this directory, forwards
 its stdout/stderr to the operator's terminal, hooks SIGINT/SIGTERM, and
 waits up to --drain-timeout (default 30s) for graceful shutdown before
@@ -48,9 +48,7 @@ Pre-flight: refuses to launch if the runtime credential at
 ~/.gibson/<kind>/<name>.runtime.json is missing, and points at the two
 environment variables that enrol a component at boot.
 
-Exit codes are surfaced verbatim from the child. Notably:
-  75  the SDK's plugin rotation contract — not a crash; the platform
-      should restart the binary. The CLI prints a clear note.
+Exit codes are surfaced verbatim from the child.
 
 Examples:
   gibson component run --kind tool
@@ -106,11 +104,8 @@ func doRun(dir, kind string, drainTimeout time.Duration) error {
 		return runErr // setup or supervisor error → exit 1
 	}
 
-	switch exitCode {
-	case 0:
+	if exitCode == 0 {
 		return nil
-	case runner.ExitCodeRotation:
-		fmt.Fprintln(os.Stderr, "component run: child requested rotation (exit 75); not restarting (CLI is one-shot)")
 	}
 	return ExitCodeError{Code: exitCode}
 }

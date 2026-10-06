@@ -10,33 +10,27 @@ chart source is <https://github.com/zeroroot-ai/charts>.
 ## Before deploy
 
 - [ ] `make build` succeeds with the pinned SDK version
-- [ ] `gibson component validate` passes (manifest schema clean)
-- [ ] All declared secrets exist in the tenant's broker
+- [ ] `gibson component validate --kind plugin` passes
+- [ ] Each secret the plugin resolves exists in the tenant's broker, and a
+      tenant admin granted the plugin access to it
 - [ ] `gibson inspect` shows the plugin principal with the expected
       `can_resolve` grants
 - [ ] `make image` produces a tagged image (semver)
 - [ ] Image pushed and reachable from the cluster
 
-## Manifest and runtime modes
+## Runtime modes
 
-`spec.runtime` in `plugin.yaml` controls deployment shape:
+The `runtime` value of the plugin entry in the chart's `plugins:` map controls
+the deployment shape:
 
-| Mode      | What it means                           | When to use         |
-|-----------|-----------------------------------------|---------------------|
-| `process` | Same pod as the daemon (or sidecar)     | Default; dev + small prod |
-| `pod`     | Standalone Deployment, gRPC over network| Most production      |
-| `setec`   | microVM sandbox per call (Setec)        | Untrusted egress     |
+| Mode      | What it means                            | When to use     |
+|-----------|------------------------------------------|-----------------|
+| `pod`     | Standalone Deployment, gRPC over network | Most production |
+| `setec`   | microVM sandbox (Setec)                  | Untrusted input |
 
-Most plugins use `pod`. Set in the manifest:
+Most plugins use `pod`.
 
-```yaml
-spec:
-  runtime: pod
-  policy:
-    setec_required: false
-```
-
-## Manifest essentials
+## Deployment essentials
 
 ```yaml
 apiVersion: apps/v1
@@ -53,8 +47,8 @@ spec:
         env:
         - name: GIBSON_URL
           value: <daemon URL>
-        # Bootstrap token mounted from a Secret seeded by RegisterPlugin.
-        # SDK consumes it once on first start, then exclusively uses host_key.
+        # Bootstrap token from the dashboard's deploy wizard, mounted from a
+        # Secret. SDK consumes it once on first start, then uses host_key.
         - name: GIBSON_BOOTSTRAP_TOKEN
           valueFrom:
             secretKeyRef: { name: {{.Name}}-bootstrap, key: token }
@@ -83,17 +77,3 @@ spec:
 - The plugin must be allowed to write `~/.gibson/plugin/{{.Name}}/`
   to persist `host_key`. `runAsUser` matters — use a writeable
   emptyDir or PVC mount.
-
-## Exit code 75 — restart policy
-
-When a `rotation: restart` secret rotates, the plugin exits 75. The
-default Kubernetes `restartPolicy: Always` (within a Deployment)
-restarts it automatically. Don't add custom logic that conflates 75
-with crashes.
-
-## Setec mode
-
-If you set `runtime: setec` and `policy.setec_required: true`, every
-invocation runs in a microVM with the manifest's `spec.egress[]` list
-as the firewall allowlist. Verify your declared egress targets cover
-every external host the plugin contacts.

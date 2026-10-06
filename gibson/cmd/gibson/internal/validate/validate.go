@@ -4,8 +4,8 @@
 // Package validate is the kind-aware local validator behind
 // `gibson component validate`. Each kind has its own checks:
 //
-//   - plugin: delegates to sdk/plugin/manifest.Validate (the same
-//     function the SDK and daemon call).
+//   - plugin: a parseable package main Go file at the root. A plugin
+//     declares itself in code (ADR-0097), so no file holds a declaration.
 //   - tool:   structural component.yaml + (if buf is on PATH) `buf lint`
 //     over api/proto/gibson/tools/<pkg>/v1/, plus a grep-check that
 //     the response message reserves field 100 = DiscoveryResult.
@@ -24,7 +24,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/zeroroot-ai/sdk/plugin/manifest"
 	"github.com/zeroroot-ai/sdk/taxonomy"
 
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/layout"
@@ -168,23 +167,34 @@ func validateTool(dir, name string, r *Report) {
 	}
 }
 
-// validatePlugin delegates to the SDK manifest validator.
+// validatePlugin checks that the plugin directory holds Go source of package
+// main at its root, and that each such file parses. The plugin's name,
+// version and methods are declared in that code (ADR-0097), so no other file
+// is checked.
 func validatePlugin(dir string, r *Report) {
-	manifestPath := layout.PluginManifest(dir)
-	if _, err := os.Stat(manifestPath); err != nil {
-		r.addError(manifestPath, "plugin.yaml not found")
+	files, err := filepath.Glob(filepath.Join(dir, "*.go"))
+	if err != nil {
+		r.addError(dir, fmt.Sprintf("list Go files: %v", err))
 		return
 	}
-	_, err := manifest.Load(manifestPath)
-	if err == nil {
-		return
+	found := false
+	for _, f := range files {
+		if strings.HasSuffix(f, "_test.go") {
+			continue
+		}
+		fset := token.NewFileSet()
+		file, err := parser.ParseFile(fset, f, nil, parser.PackageClauseOnly)
+		if err != nil {
+			r.addError(f, fmt.Sprintf("parse error: %v", err))
+			continue
+		}
+		if file.Name.Name == "main" {
+			found = true
+		}
 	}
-	if manifest.IsValidationError(err) {
-		r.addError(manifestPath, err.Error())
-		return
+	if !found {
+		r.addError(dir, "no Go file of package main at the plugin root; the plugin declares itself in code with plugin.Serve")
 	}
-	// I/O or parse error.
-	r.addError(manifestPath, fmt.Sprintf("manifest load: %v", err))
 }
 
 // field100Regex catches both `gibson.graphrag.v1.DiscoveryResult discovery = 100;`

@@ -53,12 +53,12 @@ func TestCLISpec_NonEmpty(t *testing.T) {
 	}
 }
 
-// deletedManifest is the component manifest file that ADR-0097 deleted. Help
-// text may say that the file is gone. It must not describe the file as part of
-// a scaffold or as an input of a command (adk#119): "component directory
+// deletedManifests are the component manifest files that ADR-0097 deleted.
+// Help text may say that a file is gone. It must not describe the file as part
+// of a scaffold or as an input of a command (adk#119): "component directory
 // (containing component.yaml)" sent a developer to look for a file that no
-// command writes.
-const deletedManifest = "component.yaml"
+// command writes. plugin.yaml joined the list with adk#118.
+var deletedManifests = []string{"component.yaml", "plugin.yaml"}
 
 // collectStrings gathers every string value of a decoded JSON document.
 func collectStrings(v any, out *[]string) {
@@ -81,8 +81,8 @@ func collectStrings(v any, out *[]string) {
 var sentenceSplit = regexp.MustCompile(`[.:;]\s+|\n\s*\n`)
 
 // TestCLISpec_ADeletedManifestIsNeverALiveFile walks every string of the
-// generated CLI spec. A sentence that names component.yaml must also say that
-// the file no longer exists.
+// generated CLI spec. A sentence that names a deleted manifest must also say
+// that the file no longer exists.
 func TestCLISpec_ADeletedManifestIsNeverALiveFile(t *testing.T) {
 	raw, err := json.Marshal(docs.BuildCLISpec(rootCmd))
 	if err != nil {
@@ -101,11 +101,13 @@ func TestCLISpec_ADeletedManifestIsNeverALiveFile(t *testing.T) {
 	for _, text := range texts {
 		for _, sentence := range sentenceSplit.Split(text, -1) {
 			flat := regexp.MustCompile(`\s+`).ReplaceAllString(sentence, " ")
-			if !regexp.MustCompile(regexp.QuoteMeta(deletedManifest)).MatchString(flat) {
-				continue
-			}
-			if !regexp.MustCompile(`no longer exists|was deleted|is gone`).MatchString(flat) {
-				t.Errorf("help text describes %s as a live file: %q", deletedManifest, flat)
+			for _, deleted := range deletedManifests {
+				if !regexp.MustCompile(regexp.QuoteMeta(deleted)).MatchString(flat) {
+					continue
+				}
+				if !regexp.MustCompile(`no longer exists|was deleted|is gone`).MatchString(flat) {
+					t.Errorf("help text describes %s as a live file: %q", deleted, flat)
+				}
 			}
 		}
 	}

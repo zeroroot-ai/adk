@@ -13,12 +13,11 @@ It ships one binary, **`gibson`**, that scaffolds a complete component
 directory whose entrypoint for the AI is **`AGENTS.md`** — a contract
 document grounded in real Gibson SDK source paths. The agent reads
 AGENTS.md on first open, picks up the contract (LLM slots, harness API,
-proto field 100 = `DiscoveryResult`, manifest schema, lifecycle),
+proto field 100 = `DiscoveryResult`, the declaration in code, lifecycle),
 writes the implementation, and uses the same `gibson` verbs to validate
 and register the result.
 
-The Gibson runtime contracts (interfaces, manifest types, serving
-helpers) live in the [SDK](https://github.com/zeroroot-ai/sdk). The
+The Gibson runtime contracts (interfaces, serving helpers) live in the [SDK](https://github.com/zeroroot-ai/sdk). The
 ADK owns the AI-coder ergonomics around them.
 
 ## Install
@@ -103,8 +102,7 @@ gibson component init <name> --kind …    # scaffold (agent | tool | plugin)
 gibson component validate --kind …       # local schema + proto checks
 gibson component run --kind …             # supervise the compiled binary
 gibson inspect                           # who am I + my grants
-gibson docs schema [plugin-yaml]
-                                         # JSON Schema for editors / AI coders
+gibson docs cli                          # the command tree as JSON
 
 # Mission authoring
 gibson mission new [--from-template <name>]  # scaffold a mission CUE file, naming a target
@@ -228,7 +226,7 @@ by enrollment path.
 |--------|------------------------------------------------|-------------------------|-------------------------|
 | agent  | LLM-driven gRPC service the daemon dials       | `sdk.NewAgent` + `serve.Agent` | bootstrap-token capability-grant |
 | tool   | Stateless gRPC tool, proto in / proto out      | `serve.Tool`            | bootstrap-token capability-grant |
-| plugin | Stateful integration, Go-first (manifest + typed Go handlers) | `plugin.Serve` + `plugin.WithHandler` | bootstrap-token capability-grant |
+| plugin | Stateful integration, Go-first (typed Go handlers, declared in code) | `plugin.Serve` + `plugin.WithHandler` | bootstrap-token capability-grant |
 | connector | Declarative MCP integration (no Go — one `connector.yaml`) | catalog manifest (ADR-0065 R6) | enabled from the catalog, no enrollment |
 
 Tools follow a platform-wide rule: **proto field 100 on every tool
@@ -237,9 +235,10 @@ daemon's DiscoveryProcessor auto-extracts field 100 and writes the
 entries into the GraphRAG knowledge graph — no Cypher from the tool.
 The tool scaffold encodes this by default.
 
-Plugins use a manifest (`plugin.yaml`, `apiVersion
-plugin.gibson.zeroroot.ai/v1`) with declared methods, secrets, runtime
-mode (`process | pod | setec`), and lifecycle timeouts.
+A plugin declares itself in code (ADR-0097): `plugin.WithName`,
+`plugin.WithVersion` and one `plugin.WithHandler` per method. No manifest
+file exists. A tenant admin grants the plugin its secrets when it deploys
+the plugin.
 
 ## Workspace config
 
