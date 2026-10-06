@@ -11,6 +11,13 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
+    ignore:
+      # grpc 1.84.0 has GO-2026-6443 (a server panic through a missing
+      # authority or Host header), and no 1.84.x release holds the fix.
+      # 1.83.2 is fixed. Remove this entry when a fixed release above 1.83.2
+      # exists: Dependabot then proposes it.
+      - dependency-name: "google.golang.org/grpc"
+        versions: ["1.84.0"]
     groups:
       go-deps:
         patterns:
