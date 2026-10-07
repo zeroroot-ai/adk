@@ -380,10 +380,10 @@ func TestCredentialsSaveNarrowsAWideFile(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, []byte("{}"), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte("{}"), 0o644); err != nil { //nolint:gosec // the test needs a wide file to prove that Save narrows it
 		t.Fatal(err)
 	}
-	if err := os.Chmod(path, 0o644); err != nil {
+	if err := os.Chmod(path, 0o644); err != nil { //nolint:gosec // the test needs a wide file to prove that Save narrows it
 		t.Fatal(err)
 	}
 	if err := (&Credentials{Issuer: "i", ClientID: "c", AccessToken: "secret", GibsonURL: "g"}).Save(); err != nil {

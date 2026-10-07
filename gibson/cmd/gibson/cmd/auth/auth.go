@@ -111,7 +111,7 @@ workspace file (gibson init) override it.`,
 			fmt.Fprintf(w, "and confirm this code:  %s\n\n", da.UserCode)
 			if !noBrowser {
 				if err := openBrowser(verify); err != nil {
-					fmt.Fprintf(w, "Not opening a browser: %v\n", err)
+					_, _ = fmt.Fprintf(w, "Not opening a browser: %v\n", err)
 				}
 			}
 			fmt.Fprintln(w, "Waiting for approval...")
