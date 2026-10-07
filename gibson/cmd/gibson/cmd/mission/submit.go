@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"buf.build/go/protovalidate"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/deviceauth"
 	daemonv1 "github.com/zeroroot-ai/sdk/api/gen/gibson/daemon/v1"
@@ -196,7 +197,8 @@ unauthenticated path.`,
 			// Step 1: register the parsed definition to obtain a
 			// stable mission_definition_id.
 			defResp, err := client.CreateMissionDefinition(ctx, &daemonv1.CreateMissionDefinitionRequest{
-				Definition: def,
+				Definition:     def,
+				IdempotencyKey: uuid.NewString(),
 			})
 			if err != nil {
 				return fmt.Errorf("CreateMissionDefinition: %w", err)
@@ -209,6 +211,7 @@ unauthenticated path.`,
 				Description:         def.GetDescription(),
 				MissionDefinitionId: defResp.GetMissionDefinitionId(),
 				TargetId:            targetID,
+				IdempotencyKey:      uuid.NewString(),
 			})
 			if err != nil {
 				return fmt.Errorf("CreateMission: %w", err)
@@ -222,6 +225,7 @@ unauthenticated path.`,
 			runStream, err := client.RunMission(ctx, &daemonv1.RunMissionRequest{
 				MissionDefinitionId: defResp.GetMissionDefinitionId(),
 				TargetId:            targetID,
+				IdempotencyKey:      uuid.NewString(),
 			})
 			if err != nil {
 				return fmt.Errorf("RunMission: %w", err)
