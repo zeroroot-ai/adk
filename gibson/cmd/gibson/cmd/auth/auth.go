@@ -9,8 +9,11 @@ package auth
 import (
 	"context"
 	"fmt"
+	"net"
+	neturl "net/url"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -107,7 +110,9 @@ workspace file (gibson init) override it.`,
 			fmt.Fprintf(w, "\nTo finish signing in, open:\n  %s\n", verify)
 			fmt.Fprintf(w, "and confirm this code:  %s\n\n", da.UserCode)
 			if !noBrowser {
-				_ = openBrowser(verify)
+				if err := openBrowser(verify); err != nil {
+					_, _ = fmt.Fprintf(w, "Not opening a browser: %v\n", err)
+				}
 			}
 			fmt.Fprintln(w, "Waiting for approval...")
 
@@ -189,7 +194,11 @@ func LogoutCommand() *cobra.Command {
 
 // openBrowser best-effort opens url in the user's default browser. A
 // failure is non-fatal: the URL is already printed for manual use.
-func openBrowser(url string) error {
+func openBrowser(raw string) error {
+	url, err := browserURL(raw)
+	if err != nil {
+		return err
+	}
 	var cmd string
 	var args []string
 	switch runtime.GOOS {
@@ -202,4 +211,33 @@ func openBrowser(url string) error {
 	}
 	args = append(args, url)
 	return exec.Command(cmd, args...).Start()
+}
+
+// browserURL returns the verification URL that the identity provider sent,
+// when it is safe to hand to the OS URI handler: https, or http to a loopback
+// host. Any other scheme (file:, javascript:, a custom handler) is refused.
+// The URL is still printed for the user to open by hand.
+func browserURL(raw string) (string, error) {
+	u, err := neturl.Parse(raw)
+	if err != nil {
+		return "", fmt.Errorf("the verification URL does not parse: %w", err)
+	}
+	switch {
+	case u.Scheme == "https" && u.Host != "":
+		return u.String(), nil
+	case u.Scheme == "http" && isLoopbackHost(u.Hostname()):
+		return u.String(), nil
+	default:
+		return "", fmt.Errorf("the verification URL has scheme %q; only https, or http to a loopback host, is opened", u.Scheme)
+	}
+}
+
+// isLoopbackHost reports whether host is localhost, an address in
+// 127.0.0.0/8, or ::1.
+func isLoopbackHost(host string) bool {
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }

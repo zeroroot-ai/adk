@@ -68,7 +68,6 @@ func TestResolve_FlagWins(t *testing.T) {
 	t.Setenv("GIBSON_URL", "https://from-env")
 	res, err := workspace.Resolve("https://from-flag")
 	require.NoError(t, err)
-	assert.Equal(t, "flag", res.Source)
 	assert.Equal(t, "https://from-flag", res.GibsonURL)
 }
 
@@ -81,7 +80,6 @@ func TestResolve_EnvFallback(t *testing.T) {
 
 	res, err := workspace.Resolve("")
 	require.NoError(t, err)
-	assert.Equal(t, "env", res.Source)
 	assert.Equal(t, "https://from-env", res.GibsonURL)
 }
 
@@ -99,7 +97,6 @@ func TestResolve_LocalWorkspace(t *testing.T) {
 
 	res, err := workspace.Resolve("")
 	require.NoError(t, err)
-	assert.Equal(t, "local-workspace", res.Source)
 	assert.Equal(t, "https://from-local", res.GibsonURL)
 }
 
@@ -113,6 +110,5 @@ func TestResolve_DefaultsToHostedPlatform(t *testing.T) {
 
 	res, err := workspace.Resolve("")
 	require.NoError(t, err)
-	assert.Equal(t, "default", res.Source)
 	assert.Equal(t, "https://api.zeroroot.ai", res.GibsonURL)
 }

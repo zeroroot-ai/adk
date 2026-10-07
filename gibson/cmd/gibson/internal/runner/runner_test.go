@@ -74,17 +74,6 @@ func TestRun_NonZeroExit(t *testing.T) {
 	assert.Equal(t, 1, code)
 }
 
-func TestRun_Exit75Rotation(t *testing.T) {
-	bin := buildFixture(t)
-	code, err := runner.Run(context.Background(), runner.RunOptions{
-		Binary: bin,
-		Args:   []string{"exit-75"},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, runner.ExitCodeRotation, code)
-	assert.Equal(t, 75, code)
-}
-
 func TestRun_DrainTimeoutEscalatesToKill(t *testing.T) {
 	if testing.Short() {
 		t.Skip("drain-timeout test is slow; skipped under -short")

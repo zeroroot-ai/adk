@@ -3,17 +3,16 @@
 
 // Package layout names the on-disk conventions of a component directory.
 //
-// It replaces component.yaml (ADR-0097, adk#90). That file declared four things
-// the CLI actually used — the kind, the component name, the path to main.go and
-// the path to the plugin manifest — and of those the kind is the only one a
-// directory cannot imply. So the kind becomes a required flag and the rest are
+// It replaces component.yaml (ADR-0097, adk#90). That file declared the things
+// the CLI actually used — the kind, the component name and the path to main.go —
+// and of those the kind is the only one a directory cannot imply. So the kind becomes a required flag and the rest are
 // derived here, in one place, rather than read from a file every command had to
 // parse first.
 //
 // The conventions are not new. They are what the scaffold has always produced
 // and what resolveBinaryPath already assumed: the directory is named after the
-// component, the binary lands beside the source with that name, main.go sits at
-// the root, and a plugin's manifest is plugin.yaml. Writing them down means a
+// component, the binary lands beside the source with that name, and main.go sits
+// at the root. Writing them down means a
 // component no longer has to restate them in a file nobody else reads.
 package layout
 
@@ -66,10 +65,6 @@ func Binary(dir string) (string, error) {
 // spec.main_path allowed this to be moved and had exactly one reader; the
 // scaffold never emitted anything but the root.
 func MainGo(dir string) string { return filepath.Join(dir, "main.go") }
-
-// PluginManifest returns the path to a plugin's manifest. component.yaml's
-// spec.manifest_path allowed this to be moved and had exactly one reader.
-func PluginManifest(dir string) string { return filepath.Join(dir, "plugin.yaml") }
 
 // ProtoPkg flattens a component name to the hyphen-free token used for its
 // proto package segment and file path ("debug-tool" to "debugtool"). It must

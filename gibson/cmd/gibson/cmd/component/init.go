@@ -16,8 +16,7 @@ import (
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/scaffold"
 )
 
-// nameRegex enforces the DNS-label-style name regex used by the
-// scaffold and SDK manifest validator.
+// nameRegex enforces the DNS-label-style name of a component.
 var nameRegex = regexp.MustCompile(`^[a-z][a-z0-9-]{0,61}[a-z0-9]$`)
 
 // initCmd returns the `gibson component init` cobra command.
@@ -44,9 +43,10 @@ shape the new directory has:
               with field 100 = gibson.graphrag.v1.DiscoveryResult, buf.yaml,
               buf.gen.yaml, and proto/vendor/ for the SDK protos
 
-  plugin:     Go-first (ADR-0065 R4). plugin.yaml manifest + handler.go
-              (plugin.Serve + plugin.WithHandler, typed Go request/response
-              structs — no .proto) + a hermetic handler_test.go with a
+  plugin:     Go-first (ADR-0065 R4). handler.go declares the plugin in
+              code (plugin.Serve + WithName, WithVersion, WithHandler, typed
+              Go request/response structs — no .proto, no manifest file,
+              ADR-0097) + a hermetic handler_test.go with a
               committed cassette under testdata/ + helm/values.yaml +
               go.mod + Makefile + Dockerfile + README + AGENTS.md +
               CLAUDE.md + prompts/ + .claude/settings.json
@@ -58,13 +58,14 @@ shape the new directory has:
 
 The name must match ^[a-z][a-z0-9-]{0,61}[a-z0-9]$ (DNS-label style).
 
---with-secret is plugin-only. agent, tool, and connector kinds do not
-declare broker secrets.
+--with-secret is plugin-only. It names a broker secret that the plugin
+resolves at start, so a missing grant fails the boot with the secret named.
+A tenant admin grants the secret when the plugin is deployed.
 
 Examples:
   gibson component init my-agent --kind agent
   gibson component init my-scanner --kind tool
-  gibson component init my-plugin --kind plugin --with-secret cred:api_key=startup:live
+  gibson component init my-plugin --kind plugin --with-secret cred:api_key
   gibson component init my-plugin --kind plugin --dir ~/projects --force
   gibson component init gitlab --kind connector`,
 		Args: cobra.ExactArgs(1),
@@ -75,7 +76,7 @@ Examples:
 
 	cmd.Flags().StringVar(&kind, "kind", "", "component kind: agent | tool | plugin | connector (required)")
 	cmd.Flags().StringVarP(&dir, "dir", "d", "", "destination directory (default: current directory)")
-	cmd.Flags().StringArrayVar(&withSecrets, "with-secret", nil, "plugin-only: declare a secret name=scope:rotation (repeatable)")
+	cmd.Flags().StringArrayVar(&withSecrets, "with-secret", nil, "plugin-only: a broker secret the plugin resolves at start, e.g. cred:api_key (repeatable)")
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing files")
 	if err := cmd.MarkFlagRequired("kind"); err != nil {
 		panic("component init: MarkFlagRequired(kind): " + err.Error())

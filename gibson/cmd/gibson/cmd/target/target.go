@@ -21,6 +21,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/deviceauth"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -115,7 +116,10 @@ func createCmd() *cobra.Command {
 				Tags:        tags,
 				Timeout:     targetTO,
 			}
-			resp, err := client.CreateTarget(ctx, &daemonv1.CreateTargetRequest{Target: tgt})
+			resp, err := client.CreateTarget(ctx, &daemonv1.CreateTargetRequest{
+				Target:         tgt,
+				IdempotencyKey: uuid.NewString(),
+			})
 			if err != nil {
 				return fmt.Errorf("CreateTarget: %w", err)
 			}

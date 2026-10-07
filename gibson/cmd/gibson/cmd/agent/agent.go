@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/internal/deviceauth"
 	agentidentityv1 "github.com/zeroroot-ai/sdk/api/gen/gibson/agentidentity/v1"
@@ -110,6 +111,7 @@ every component kind.`,
 				Kind:              principalKind,
 				Description:       description,
 				CapabilityCeiling: capability,
+				IdempotencyKey:    uuid.NewString(),
 			})
 			if err != nil {
 				return fmt.Errorf("CreateAgentIdentity: %w", err)

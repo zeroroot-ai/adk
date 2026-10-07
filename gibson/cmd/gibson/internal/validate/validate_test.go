@@ -90,37 +90,27 @@ func TestRun_UnusableDirectoryName(t *testing.T) {
 	assert.Contains(t, err.Error(), "not a usable component name")
 }
 
-func TestRun_PluginCleanManifest(t *testing.T) {
+// TestRun_PluginNeedsNoManifest: a plugin declares itself in code
+// (ADR-0097), so a directory with Go source of package main and no
+// plugin.yaml is clean.
+func TestRun_PluginNeedsNoManifest(t *testing.T) {
 	dir := componentDir(t, "demo-plugin")
-
-	manifest := `apiVersion: plugin.gibson.zeroroot.ai/v1
-kind: Plugin
-metadata:
-  name: demo-plugin
-  version: 0.1.0
-spec:
-  workload_class: plugin
-  methods:
-  - name: Echo
-    description: "Echo returns the request message unchanged."
-`
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "plugin.yaml"), []byte(manifest), 0o644))
+	// #nosec G306 -- a Go fixture under t.TempDir(); only this test reads it.
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "handler.go"), []byte("package main\n\nfunc main() {}\n"), 0o600))
 
 	r, err := validate.Run(dir, validate.KindPlugin)
 	require.NoError(t, err)
 	assert.False(t, r.HasErrors(), "plugin should be clean: %+v", r.Errors)
 }
 
-// TestRun_PluginMissingManifest. plugin.yaml is found by convention now, not at
-// spec.manifest_path, so the message must name the path it looked at.
-func TestRun_PluginMissingManifest(t *testing.T) {
+// TestRun_PluginWithoutGoSourceFails: an empty directory is no plugin.
+func TestRun_PluginWithoutGoSourceFails(t *testing.T) {
 	dir := componentDir(t, "demo-plugin")
 
 	r, err := validate.Run(dir, validate.KindPlugin)
 	require.NoError(t, err)
 	require.True(t, r.HasErrors())
-	assert.Contains(t, r.Errors[0].Message, "plugin.yaml not found")
-	assert.Contains(t, r.Errors[0].Path, "plugin.yaml")
+	assert.Contains(t, r.Errors[0].Message, "no Go file of package main")
 }
 
 // writeToolProto writes a tool's proto at the path derived from the directory

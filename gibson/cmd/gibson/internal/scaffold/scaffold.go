@@ -36,7 +36,6 @@ var tmplFS embed.FS
 // structs and the handler; the SDK derives each method's JSON-Schema contract
 // from those Go types, so there is no .proto, no buf, and no generated code.
 var pluginOutputFilename = map[string]string{
-	"plugin.yaml.tmpl":      "plugin.yaml",
 	"go.mod.tmpl":           "go.mod",
 	"handler.go.tmpl":       "handler.go",
 	"handler_test.go.tmpl":  "handler_test.go",

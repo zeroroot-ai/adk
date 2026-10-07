@@ -1,5 +1,4 @@
-BINARY   := byte-identity-secret
-MANIFEST := ./plugin.yaml
+BINARY := byte-identity-secret
 
 .PHONY: build test run image
 
