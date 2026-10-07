@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.114.0](https://github.com/zeroroot-ai/adk/compare/v0.113.1...v0.114.0) (2026-10-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* gibson docs schema is gone, and --with-secret takes a secret name only.
+
+### Features
+
+* end-phase integration of adk ([#161](https://github.com/zeroroot-ai/adk/issues/161)) ([0dfd739](https://github.com/zeroroot-ai/adk/commit/0dfd73937b4d595461a047e58e74002650491d10))
+
 ## [0.113.1](https://github.com/zeroroot-ai/adk/compare/v0.113.0...v0.113.1) (2026-10-06)
 
 
