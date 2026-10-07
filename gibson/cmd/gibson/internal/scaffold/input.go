@@ -9,11 +9,10 @@ import (
 	"strings"
 )
 
-// secretNameRegex mirrors the SDK plugin manifest validator
-// (sdk/plugin/manifest). A secret name must be prefixed with a broker
-// kind so the daemon knows where to resolve it. Validating here lets
-// `gibson component init` fail fast instead of emitting a plugin.yaml
-// that `gibson component validate` would later reject.
+// secretNameRegex is the broker name shape: a secret name is prefixed with
+// a broker kind so the daemon knows where to resolve it. Validating here lets
+// `gibson component init` fail fast instead of emitting a plugin that the
+// broker refuses at start.
 var secretNameRegex = regexp.MustCompile(`^(cred|provider_config):[a-z0-9_/:.-]+$`)
 
 // Kind identifies which Gibson component shape a scaffold renders.
@@ -50,8 +49,9 @@ type ScaffoldInput struct {
 	// Kind selects the template set: agent | tool | plugin.
 	Kind Kind
 
-	// Secrets is plugin-only. Non-nil for other kinds is a caller bug
-	// caught by Render with a clear error.
+	// Secrets is plugin-only: the broker secrets the plugin resolves at start.
+	// Non-nil for other kinds is a caller bug caught by Render with a clear
+	// error.
 	Secrets []SecretInput
 
 	// SDKVersion pins the SDK in the rendered go.mod. Typically derived
@@ -89,39 +89,23 @@ func (in ScaffoldInput) ProtoPkg() string {
 	return strings.ToLower(strings.ReplaceAll(in.Name, "-", ""))
 }
 
-// SecretInput is a single secret declaration parsed from a --with-secret flag.
-// Plugin-only.
+// SecretInput is one broker secret, parsed from a --with-secret flag, that the
+// scaffolded plugin resolves at start. Plugin-only.
 type SecretInput struct {
-	Name     string // e.g. "cred:db_password"
-	Scope    string // "startup" | "per_call"
-	Rotation string // "live"     | "restart"
+	Name string // e.g. "cred:db_password"
 }
 
-// ParseSecretFlag parses a --with-secret flag value of the form
-// "name=scope:rotation" into a SecretInput.
+// ParseSecretFlag parses a --with-secret flag value, a broker secret name.
 //
-// Example: ParseSecretFlag("cred:api_key=startup:live")
+// Example: ParseSecretFlag("cred:api_key")
 func ParseSecretFlag(s string) (SecretInput, error) {
-	eqIdx := strings.Index(s, "=")
-	if eqIdx < 0 {
-		return SecretInput{}, fmt.Errorf("scaffold: --with-secret %q: expected format name=scope:rotation", s)
+	name := strings.TrimSpace(s)
+	if strings.Contains(name, "=") {
+		return SecretInput{}, fmt.Errorf("scaffold: --with-secret %q: give the secret name only, for example cred:api_key; "+
+			"a secret declares no scope or rotation, because a plugin declares itself in code (ADR-0097)", s)
 	}
-	name := strings.TrimSpace(s[:eqIdx])
 	if !secretNameRegex.MatchString(name) {
-		return SecretInput{}, fmt.Errorf("scaffold: --with-secret %q: name %q must match %s (e.g. cred:api_key)", s, name, secretNameRegex.String())
+		return SecretInput{}, fmt.Errorf("scaffold: --with-secret %q: name must match %s (e.g. cred:api_key)", s, secretNameRegex.String())
 	}
-	rest := strings.TrimSpace(s[eqIdx+1:])
-	parts := strings.SplitN(rest, ":", 2)
-	if len(parts) != 2 {
-		return SecretInput{}, fmt.Errorf("scaffold: --with-secret %q: expected scope:rotation after '=', got %q", s, rest)
-	}
-	scope := strings.TrimSpace(parts[0])
-	rotation := strings.TrimSpace(parts[1])
-	if scope != "startup" && scope != "per_call" {
-		return SecretInput{}, fmt.Errorf("scaffold: --with-secret %q: scope must be 'startup' or 'per_call', got %q", s, scope)
-	}
-	if rotation != "live" && rotation != "restart" {
-		return SecretInput{}, fmt.Errorf("scaffold: --with-secret %q: rotation must be 'live' or 'restart', got %q", s, rotation)
-	}
-	return SecretInput{Name: name, Scope: scope, Rotation: rotation}, nil
+	return SecretInput{Name: name}, nil
 }

@@ -2,25 +2,21 @@
 
 Plugin enrollment is the **bootstrap-token / capability-grant (CG)**
 flow — the one enrollment mechanism every component kind shares (docs
-ADR-0045). Agents and tools enroll the same way; a plugin additionally
-uploads its `plugin.yaml` manifest at mint time.
+ADR-0045). Agents and tools enroll the same way. The plugin declares
+itself in code (ADR-0097); no manifest file is uploaded.
 
 ## The flow
 
-1. Tenant-admin runs the dashboard's Register Plugin wizard, which
-   uploads this directory's `plugin.yaml` to
-   `PluginsAdminService.RegisterPlugin`.
-2. The daemon validates the manifest, creates a Zitadel
-   `plugin_principal`, writes FGA `can_resolve` tuples for every
-   declared secret, and returns a single-use bootstrap token (24h
-   TTL).
-3. Operator starts the binary once with the token in the environment:
+1. A tenant admin runs the dashboard's deploy wizard. It returns a
+   single-use bootstrap token, and its secret access step grants the
+   plugin principal FGA `can_resolve` on each secret the plugin needs.
+2. Operator starts the binary once with the token in the environment:
    ```sh
    export GIBSON_URL=https://<your-platform>
    export GIBSON_BOOTSTRAP_TOKEN=<bootstrap-token>
    gibson component run --kind plugin
    ```
-4. `plugin.Serve` runs `capabilitygrant.Bootstrap → Discover → Register` and
+3. `plugin.Serve` runs `capabilitygrant.Bootstrap → Discover → Register` and
    persists `~/.gibson/plugin/byte-identity-secret.host_key` plus
    `~/.gibson/plugin/byte-identity-secret.runtime.json` (both mode 0600). A restart needs
    no token: the host key takes over (sdk#128).
@@ -46,15 +42,12 @@ and re-run.
 
 ### `gibson component run` exits immediately with non-zero
 
-- **Manifest validation** — a startup-time `Validate` failure prints
-  structured per-field errors. Fix `plugin.yaml` and re-run.
-- **Method handler missing** — your manifest declares method `X` but
-  `handler.go` did not register a handler with `plugin.WithHandler("X", fn)`. SDK
-  surfaces this as a method-mismatch error.
-- **Secret unavailable at startup** — a `scope: startup` secret
-  declared `required: true` but the broker can't resolve it. Check
-  the FGA tuple was created (the dashboard does this; if it failed,
-  re-register).
+- **Declaration incomplete** — `plugin.Serve` needs `WithName`,
+  `WithVersion` and at least one `WithHandler` with a description. The
+  error names the missing part.
+- **Secret unavailable at startup** — the `OnStart` hook could not
+  resolve a secret, and the error names it. Ask a tenant admin to grant
+  the plugin that secret in the dashboard, then restart the plugin.
 
 ### Plugin shows "unreachable" in the dashboard
 
@@ -81,13 +74,6 @@ gibson inspect
 ```
 
 Auto-detects the plugin credentials and prints effective FGA grants.
-A newly-registered plugin should show `can_resolve` tuples for every
-declared secret.
+A plugin should show a `can_resolve` tuple for each secret a tenant
+admin granted it.
 
-## Exit code 75 is rotation, not failure
-
-If you see exit code 75, that's the SDK signalling that a
-`rotation: restart` secret rotated and the plugin should be restarted.
-The CLI's `gibson component run` surfaces 75 verbatim and prints a
-clear note. systemd / Kubernetes restart policies pick the plugin
-back up automatically.

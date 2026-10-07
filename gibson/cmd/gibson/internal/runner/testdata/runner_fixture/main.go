@@ -4,7 +4,6 @@
 //
 //	exit-zero     prints "ready" and exits 0
 //	exit-1        prints "fail"  and exits 1
-//	exit-75       prints "rotate" and exits 75 (plugin rotation contract)
 //	ignore-sigterm prints "running", ignores SIGTERM forever (drain timeout test)
 package main
 
@@ -28,9 +27,6 @@ func main() {
 	case "exit-1":
 		fmt.Println("fail")
 		os.Exit(1)
-	case "exit-75":
-		fmt.Println("rotate")
-		os.Exit(75)
 	case "ignore-sigterm":
 		fmt.Println("running")
 		ch := make(chan os.Signal, 1)

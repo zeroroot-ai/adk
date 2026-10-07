@@ -24,7 +24,7 @@ Subcommands:
   generate  regenerate gen/ from taxonomy.yaml and ontology.yaml
   build     generate + validate + go build (one-step developer loop)
   validate  local schema + proto checks against a component directory
-  run       run the compiled component binary, supervising signals and exit code 75
+  run       run the compiled component binary, supervising its signals
 
 --kind is required on validate and run. It used to be auto-detected from
 component.yaml, which no longer exists (ADR-0097): everything else about a

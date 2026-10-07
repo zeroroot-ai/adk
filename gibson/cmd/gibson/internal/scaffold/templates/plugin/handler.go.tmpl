@@ -1,12 +1,17 @@
 package main
 
 import (
-	"cmp"
 	"context"
+{{- if .Secrets}}
+	"fmt"
+{{- end}}
 	"log/slog"
 	"os"
 
 	"github.com/zeroroot-ai/sdk/plugin"
+{{- if .Secrets}}
+	"github.com/zeroroot-ai/sdk/plugin/lifecycle"
+{{- end}}
 )
 
 // EchoRequest is the typed request for the Echo method.
@@ -33,11 +38,44 @@ func echo(_ context.Context, req EchoRequest) (EchoResponse, error) {
 	return EchoResponse{Message: req.Message}, nil
 }
 
+// pluginName and pluginVersion are the declaration this plugin reports at
+// check-in (ADR-0097). No manifest file exists: the name, the version and each
+// method with its description are declared in code, in main below.
+const (
+	pluginName    = "{{.Name}}"
+	pluginVersion = "{{.Version}}"
+)
+{{- if .Secrets}}
+
+// startupSecrets are the broker secrets this plugin needs before it serves. A
+// tenant admin grants the plugin access to each one when it deploys the
+// plugin. requireSecrets resolves each at start, so a missing grant fails the
+// boot with the secret named and not the first call.
+var startupSecrets = []string{
+{{- range .Secrets}}
+	"{{.Name}}",
+{{- end}}
+}
+
+func requireSecrets(ctx context.Context) error {
+	for _, name := range startupSecrets {
+		if _, err := plugin.ResolveSecret(ctx, name); err != nil {
+			return fmt.Errorf("resolve startup secret %s: %w", name, err)
+		}
+	}
+	return nil
+}
+{{- end}}
+
 func main() {
 	err := plugin.Serve(
 		context.Background(),
-		plugin.WithManifest(cmp.Or(os.Getenv("GIBSON_PLUGIN_MANIFEST"), "./plugin.yaml")),
-		plugin.WithHandler("Echo", echo),
+		plugin.WithName(pluginName),
+		plugin.WithVersion(pluginVersion),
+		plugin.WithHandler("Echo", "Echo returns the request message unchanged.", echo),
+{{- if .Secrets}}
+		plugin.WithLifecycle(lifecycle.LifecycleHooks{OnStart: requireSecrets}),
+{{- end}}
 	)
 	if err != nil {
 		slog.Error("plugin exited with error", "err", err)

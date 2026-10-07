@@ -1,7 +1,6 @@
 package main
 
 import (
-	"cmp"
 	"context"
 	"log/slog"
 	"os"
@@ -33,11 +32,20 @@ func echo(_ context.Context, req EchoRequest) (EchoResponse, error) {
 	return EchoResponse{Message: req.Message}, nil
 }
 
+// pluginName and pluginVersion are the declaration this plugin reports at
+// check-in (ADR-0097). No manifest file exists: the name, the version and each
+// method with its description are declared in code, in main below.
+const (
+	pluginName    = "byte-identity"
+	pluginVersion = "0.1.0"
+)
+
 func main() {
 	err := plugin.Serve(
 		context.Background(),
-		plugin.WithManifest(cmp.Or(os.Getenv("GIBSON_PLUGIN_MANIFEST"), "./plugin.yaml")),
-		plugin.WithHandler("Echo", echo),
+		plugin.WithName(pluginName),
+		plugin.WithVersion(pluginVersion),
+		plugin.WithHandler("Echo", "Echo returns the request message unchanged.", echo),
 	)
 	if err != nil {
 		slog.Error("plugin exited with error", "err", err)

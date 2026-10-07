@@ -10,14 +10,12 @@ import "github.com/spf13/cobra"
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "docs",
-		Short: "Emit machine-readable docs (JSON Schemas, etc.)",
+		Short: "Emit machine-readable docs",
 		Long: `docs — emit developer-facing reference material.
 
 Subcommands:
-  schema    JSON Schema (Draft 2020-12) for plugin.yaml
   cli       the command tree as machine-readable JSON (drives the CLI reference)`,
 	}
-	cmd.AddCommand(schemaCmd())
 	cmd.AddCommand(cliCmd())
 	return cmd
 }
