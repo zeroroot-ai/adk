@@ -227,7 +227,3 @@ func validateOntology(dir string, r *Report) {
 		r.addError(ontologyPath, fmt.Sprintf("validate ontology.yaml: %v", err))
 	}
 }
-
-// ErrFailed is returned by command callers when the report contains
-// errors, to drive a non-zero exit code distinct from I/O errors.
-var ErrFailed = errors.New("validate: report has errors")
