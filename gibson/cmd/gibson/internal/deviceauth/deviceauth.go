@@ -299,7 +299,9 @@ func CredentialsPath() (string, error) {
 }
 
 // Save writes creds to ~/.gibson/auth/credentials with mode 0600,
-// creating the parent directory (0700) if needed.
+// creating the parent directory (0700) if needed. It writes a new file of
+// mode 0600 and renames it over the old one, so a file that was wider before
+// ends at mode 0600 too.
 func (cr *Credentials) Save() error {
 	path, err := CredentialsPath()
 	if err != nil {
@@ -312,8 +314,25 @@ func (cr *Credentials) Save() error {
 	if err != nil {
 		return fmt.Errorf("deviceauth: marshal credentials: %w", err)
 	}
-	if err := os.WriteFile(path, b, 0o600); err != nil {
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".credentials-*.tmp")
+	if err != nil {
+		return fmt.Errorf("deviceauth: create credentials file: %w", err)
+	}
+	tmpPath := tmp.Name()
+	defer func() { _ = os.Remove(tmpPath) }()
+	if err := tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("deviceauth: set credentials file mode: %w", err)
+	}
+	if _, err := tmp.Write(b); err != nil {
+		_ = tmp.Close()
 		return fmt.Errorf("deviceauth: write credentials: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("deviceauth: write credentials: %w", err)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("deviceauth: replace credentials: %w", err)
 	}
 	return nil
 }

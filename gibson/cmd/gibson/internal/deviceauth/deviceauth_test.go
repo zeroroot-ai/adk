@@ -367,3 +367,40 @@ func TestDiscover_AcceptsMatchingIssuer(t *testing.T) {
 		srv.Close()
 	}
 }
+
+// TestCredentialsSaveNarrowsAWideFile proves that Save leaves the credentials
+// file at mode 0600 even when the file existed before with a wider mode.
+func TestCredentialsSaveNarrowsAWideFile(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	path, err := CredentialsPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(path, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := (&Credentials{Issuer: "i", ClientID: "c", AccessToken: "secret", GibsonURL: "g"}).Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("credentials mode = %04o; want 0600", got)
+	}
+	got, err := LoadCredentials()
+	if err != nil || got.AccessToken != "secret" {
+		t.Fatalf("LoadCredentials() = %+v, %v; want the saved credentials", got, err)
+	}
+	if entries, _ := os.ReadDir(filepath.Dir(path)); len(entries) != 1 {
+		t.Fatalf("the auth dir holds %d entries; want only the credentials file", len(entries))
+	}
+}
