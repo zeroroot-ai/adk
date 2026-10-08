@@ -27,7 +27,7 @@ go install github.com/zeroroot-ai/adk/gibson/cmd/gibson@latest
 gibson --help
 ```
 
-Requires Go <!-- go-floor -->1.27.1<!-- /go-floor -->+. The binary is named `gibson`.
+Requires Go <!-- go-floor -->1.27.2<!-- /go-floor -->+. The binary is named `gibson`.
 
 ## What an AI-driven session looks like
 
