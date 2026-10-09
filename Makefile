@@ -87,7 +87,7 @@ generate: regen-cue
 # bootstrap: org Makefile contract target. "Just works" one-command dev
 # setup — installs the build/lint/dead-code toolchain at the pinned
 # versions so `make build|test|check` succeed on a clean checkout. The Go
-# toolchain itself is pinned by gibson/go.mod (`go 1.27.1`) + .tool-versions.
+# toolchain itself is pinned by gibson/go.mod (`go 1.27.2`) + .tool-versions.
 bootstrap:
 	@echo "bootstrap: installing pinned dev toolchain"
 	go install cuelang.org/go/cmd/cue@v0.16.1
@@ -218,7 +218,7 @@ deadcode:
 # (`gibson`) distributed as a Go binary, NOT as a container image — there
 # is no first-party image to build or mirror-pin here. (The container
 # bases under gibson/.../scaffold are customer SCAFFOLD output, pinned to
-# the public golang:1.27.1-alpine, the Go that gibson/go.mod names, and
+# the public golang:1.27.2-alpine, the Go that gibson/go.mod names, and
 # the org toolchain guard keeps them equal.) Target present for uniform-contract parity; intentional no-op.
 image:
 	@echo "image: adk ships a Go-binary CLI, no first-party container image (no-op)"
