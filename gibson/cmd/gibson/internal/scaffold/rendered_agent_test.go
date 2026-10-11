@@ -5,7 +5,6 @@ package scaffold_test
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -46,14 +45,14 @@ func TestRenderedAgentBuildsAndItsTestPasses(t *testing.T) {
 	dir := t.TempDir()
 	for rel, content := range files {
 		dst := filepath.Join(dir, rel)
-		require.NoError(t, os.MkdirAll(filepath.Dir(dst), 0o755))
-		require.NoError(t, os.WriteFile(dst, content, 0o644))
+		require.NoError(t, os.MkdirAll(filepath.Dir(dst), 0o750))
+		require.NoError(t, os.WriteFile(dst, content, 0o600))
 	}
 	for _, args := range [][]string{{"mod", "tidy"}, {"build", "./..."}, {"test", "./..."}} {
-		cmd := exec.Command("go", args...)
+		cmd := exec.Command("go", args...) //nolint:gosec // the arguments are fixed in this test
 		cmd.Dir = dir
 		var out bytes.Buffer
 		cmd.Stdout, cmd.Stderr = &out, &out
-		require.NoError(t, cmd.Run(), fmt.Sprintf("go %s in the rendered agent:\n%s", strings.Join(args, " "), out.String()))
+		require.NoErrorf(t, cmd.Run(), "go %s in the rendered agent:\n%s", strings.Join(args, " "), out.String())
 	}
 }
