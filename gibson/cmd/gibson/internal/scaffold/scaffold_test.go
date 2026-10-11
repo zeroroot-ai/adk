@@ -213,7 +213,7 @@ func TestRender_AgentAllFilesPresent(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, name := range []string{
-		"main.go", "go.mod",
+		"main.go", "main_test.go", "go.mod",
 		"Makefile", "Dockerfile", ".gitignore", "README.md",
 		"ontology.yaml",
 	} {
@@ -225,6 +225,19 @@ func TestRender_AgentAllFilesPresent(t *testing.T) {
 	// And no component.yaml: the scaffold stopped emitting it with ADR-0097
 	// (adk#90). A component declares nothing on disk that the CLI then parses.
 	assert.NotContains(t, files, "component.yaml")
+}
+
+// TestRender_AgentExecuteMakesARealHarnessCall pins D86: the generated agent
+// calls the Harness in execute, and no commented-out call stands in for it.
+func TestRender_AgentExecuteMakesARealHarnessCall(t *testing.T) {
+	files, err := scaffold.Render(scaffold.ScaffoldInput{
+		Name: "demo-agent", Version: "0.1.0", Kind: scaffold.KindAgent, SDKVersion: "v1.2.0",
+	})
+	require.NoError(t, err)
+	src := string(files["main.go"])
+	assert.Contains(t, src, "\n\tresp, err := h.Complete(ctx, \"primary\"")
+	assert.NotContains(t, src, "// resp, err := h.Complete")
+	assert.Contains(t, string(files["main_test.go"]), "func TestExecuteAsksTheLLMAboutTheGoal")
 }
 
 func TestRender_ToolAllFilesPresent(t *testing.T) {

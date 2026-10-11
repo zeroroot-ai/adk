@@ -42,7 +42,7 @@ func TestIntegration_AgentBuilds(t *testing.T) {
 		Name:       "demo-agent",
 		Version:    "0.1.0",
 		Kind:       scaffold.KindAgent,
-		SDKVersion: "v1.2.0",
+		SDKVersion: sdkPin(t),
 	})
 
 	runCmd(t, dir, "go", "mod", "tidy")

@@ -63,6 +63,7 @@ var connectorOutputFilename = map[string]string{
 // agentOutputFilename maps templates/agent/ basenames to output paths.
 var agentOutputFilename = map[string]string{
 	"main.go.tmpl":       "main.go",
+	"main_test.go.tmpl":  "main_test.go",
 	"go.mod.tmpl":        "go.mod",
 	"Makefile.tmpl":      "Makefile",
 	"Dockerfile.tmpl":    "Dockerfile",

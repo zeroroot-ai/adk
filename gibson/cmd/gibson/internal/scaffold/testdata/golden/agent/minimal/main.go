@@ -41,26 +41,23 @@ func main() {
 	}
 }
 
-// execute is the agent's main reasoning loop. Replace the stub with
-// your real logic. See AGENTS.md for harness API patterns and
+// execute is the agent's main reasoning loop. It makes one real Harness
+// call: it asks the primary LLM slot about the goal of the task. Replace the
+// prompt with your own logic. See AGENTS.md for harness API patterns and
 // core/sdk/agent/harness.go for the full surface.
 func execute(ctx context.Context, h agent.Harness, task agent.Task) (agent.Result, error) {
 	slog.InfoContext(ctx, "executing task", "id", task.ID, "goal", task.Goal)
 
-	// Example: call the primary LLM with the task's goal.
-	// Uncomment and adapt — this stub returns a static result so the
-	// scaffold compiles before the developer wires in real behavior.
-	//
-	// resp, err := h.Complete(ctx, "primary", []llm.Message{
-	// 	{Role: llm.RoleSystem, Content: "You are demo-agent."},
-	// 	{Role: llm.RoleUser,   Content: task.Goal},
-	// })
-	// if err != nil {
-	// 	return agent.Result{Status: agent.StatusFailed}, err
-	// }
+	resp, err := h.Complete(ctx, "primary", []llm.Message{
+		{Role: llm.RoleSystem, Content: "You are demo-agent."},
+		{Role: llm.RoleUser, Content: task.Goal},
+	})
+	if err != nil {
+		return agent.Result{Status: agent.StatusFailed}, fmt.Errorf("complete: %w", err)
+	}
 
 	return agent.Result{
 		Status: agent.StatusSuccess,
-		Output: fmt.Sprintf("agent demo-agent executed task %s", task.ID),
+		Output: resp.Content,
 	}, nil
 }
