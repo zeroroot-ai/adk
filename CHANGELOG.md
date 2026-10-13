@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.115.0](https://github.com/zeroroot-ai/adk/compare/v0.114.0...v0.115.0) (2026-10-13)
+
+
+### Features
+
+* **scaffold:** the generated agent makes a real Harness call (D86) ([#164](https://github.com/zeroroot-ai/adk/issues/164)) ([7ac97f0](https://github.com/zeroroot-ai/adk/commit/7ac97f0318bcc1ace968f026cd69a1aadacce4c4))
+
 ## [0.114.0](https://github.com/zeroroot-ai/adk/compare/v0.113.1...v0.114.0) (2026-10-07)
 
 
