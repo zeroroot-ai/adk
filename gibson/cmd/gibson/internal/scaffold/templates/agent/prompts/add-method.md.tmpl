@@ -16,8 +16,7 @@ if err != nil {
 }
 ```
 
-If you need tool-use, declare `agent.FeatureToolUse` in your slot's
-`RequiredFeatures` and call `h.CompleteWithTools(...)`. The full
+If you need tool use, call `h.CompleteWithTools(...)`. The full
 options surface is in `core/sdk/llm/`.
 
 ## Calling a tool

@@ -64,7 +64,7 @@ Defined in `core/sdk/agent/harness.go`. The harness gives you:
 - **Observability** — `h.Logger()` (slog), `h.Tracer()` (OTel).
 
 The full LLM types live in `core/sdk/llm/` (Message, RoleSystem/User/
-Assistant, SlotRequirements, MinContextWindow, FeatureToolUse).
+Assistant, SlotRequirements, MinContextWindow).
 
 ## LLM slots
 
