@@ -61,7 +61,8 @@ with ports/services/endpoints/certificates as sub-state) are in
 
 ## Adding an LLM slot
 
-Edit the `sdk.NewAgent(...)` call in `main.go` to add another
-`sdk.WithLLMSlot(...)`. Slots are independent — you can have a fast
-small-context slot for filtering and a primary slot for reasoning, and
-the harness resolves them to different providers.
+Call the new slot by its name, for example
+`h.Complete(ctx, "fast", messages)`. Nothing else declares it. The
+platform resolves the slot to one of the tenant's providers and a model.
+It uses the tenant default provider and model when that model meets the
+context floor of the slot.

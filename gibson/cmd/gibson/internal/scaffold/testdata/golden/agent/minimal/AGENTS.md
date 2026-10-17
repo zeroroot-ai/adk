@@ -19,7 +19,6 @@ sdk.NewAgent(
     sdk.WithName("demo-agent"),
     sdk.WithVersion("0.1.0"),
     sdk.WithDescription("..."),
-    sdk.WithLLMSlot("primary", llm.SlotRequirements{MinContextWindow: 8000}),
     sdk.WithExecuteFunc(execute),
 )
 ```
@@ -43,9 +42,8 @@ Defined in `core/sdk/agent/harness.go`. The harness gives you:
 
 - **LLM access** — `h.Complete(ctx, slot, messages, opts...)`,
   `h.CompleteWithTools(ctx, slot, messages, tools)`,
-  `h.CompleteStructured(...)`. Slot names match `WithLLMSlot` (e.g.
-  `"primary"`). The harness resolves slots to concrete providers
-  (Anthropic / OpenAI / Gemini / Ollama) at runtime.
+  `h.CompleteStructured(...)`. The slot is a name (e.g. `"primary"`). The
+  platform resolves it to one of the tenant's providers and a model.
 - **Tool execution** — `h.CallToolProto(ctx, name, request, response)`.
   Tools are remote, called via Redis work queue. You get the response
   back as `proto.Message`; assert to your generated type.
@@ -64,13 +62,15 @@ Defined in `core/sdk/agent/harness.go`. The harness gives you:
 - **Observability** — `h.Logger()` (slog), `h.Tracer()` (OTel).
 
 The full LLM types live in `core/sdk/llm/` (Message, RoleSystem/User/
-Assistant, SlotRequirements, MinContextWindow).
+Assistant).
 
 ## LLM slots
 
-A slot declares a name and a minimum context window. The platform
-picks the provider and the model for each slot. See
-`core/sdk/llm/slot.go`.
+The agent calls a slot by its name, for example
+`h.Complete(ctx, "primary", messages)`. Nothing else declares it. The
+platform resolves the slot to one of the tenant's providers and a model.
+It uses the tenant default provider and model when that model meets the
+context floor of the slot.
 
 ## Lifecycle
 

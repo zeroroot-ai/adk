@@ -19,11 +19,6 @@ func main() {
 		sdk.WithName("demo-agent"),
 		sdk.WithVersion("0.1.0"),
 		sdk.WithDescription("demo-agent agent"),
-		// Declare the LLM slot the agent expects the harness to fill.
-		// See core/sdk/llm/ for the full slot-requirement shape.
-		sdk.WithLLMSlot("primary", llm.SlotRequirements{
-			MinContextWindow: 8000,
-		}),
 		sdk.WithExecuteFunc(execute),
 	)
 	if err != nil {
