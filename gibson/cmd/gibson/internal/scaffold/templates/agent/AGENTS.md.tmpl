@@ -46,7 +46,7 @@ Defined in `core/sdk/agent/harness.go`. The harness gives you:
   `h.CompleteStructured(...)`. Slot names match `WithLLMSlot` (e.g.
   `"primary"`). The harness resolves slots to concrete providers
   (Anthropic / OpenAI / Gemini / Ollama) at runtime.
-- **Tool execution** — `h.ExecuteTool(ctx, name, input proto.Message)`.
+- **Tool execution** — `h.CallToolProto(ctx, name, request, response)`.
   Tools are remote, called via Redis work queue. You get the response
   back as `proto.Message`; assert to your generated type.
 - **Plugin queries** — agents do not invoke plugins directly; ask the
@@ -68,15 +68,9 @@ Assistant, SlotRequirements, MinContextWindow).
 
 ## LLM slots
 
-You declare what the agent *needs*; the platform decides what to give
-it. See `core/sdk/llm/slot.go`. Common features:
-
-| Feature           | When to require                        |
-|-------------------|----------------------------------------|
-| `tool_use`        | You'll call `CompleteWithTools`        |
-| `vision`          | You'll send images                     |
-| `streaming`       | Need token-stream callbacks            |
-| `json_mode`       | Use `CompleteStructured`               |
+A slot declares a name and a minimum context window. The platform
+picks the provider and the model for each slot. See
+`core/sdk/llm/slot.go`.
 
 ## Lifecycle
 
