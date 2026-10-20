@@ -112,7 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${GH_TOKEN:-}" ]; then
-            echo "::warning::DOCS_SITE_DISPATCH_TOKEN is not configured for this repo, so docs-site was not notified. Its spec-sync workflow will still pick this release up on its weekly schedule, or immediately via 'gh workflow run spec-sync.yml -R zeroroot-ai/docs-site -f spec=cli'. See docs-site#26."
+            echo "::warning::DOCS_SITE_DISPATCH_TOKEN is not configured for this repo, so docs-site was not notified. Run its spec-sync workflow by hand to pick this release up: 'gh workflow run spec-sync.yml -R zeroroot-ai/docs-site -f spec=cli'. See docs-site#26."
             exit 0
           fi
           # An empty tag is fine — docs-site then resolves this repo's latest
