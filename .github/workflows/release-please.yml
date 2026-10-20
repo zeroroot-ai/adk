@@ -92,8 +92,8 @@ jobs:
   # set it once as an org secret visible to `adk` and `sdk`.
   #
   # It is not provisioned yet. Until it is, this job warns and exits 0 rather
-  # than failing every release: docs-site's spec-sync also runs on a weekly
-  # schedule, so the refresh still happens, just later.
+  # than failing every release: a person can run docs-site's spec-sync with
+  # workflow_dispatch, so the refresh still happens, just later.
   # ---------------------------------------------------------------------------
   notify-docs-site:
     name: notify docs-site
