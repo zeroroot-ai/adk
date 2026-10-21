@@ -1,6 +1,6 @@
 module github.com/zeroroot-ai/demo-tool
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/zeroroot-ai/sdk v1.2.0
