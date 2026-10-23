@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.115.1](https://github.com/zeroroot-ai/adk/compare/v0.115.0...v0.115.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **rework:** remove stale schedule text ([48cbaa3](https://github.com/zeroroot-ai/adk/commit/48cbaa3171dd127d4eb811148facfde911b2ddb8))
+* **rework:** remove stale schedule text from release-please ([#183](https://github.com/zeroroot-ai/adk/issues/183)) ([48cbaa3](https://github.com/zeroroot-ai/adk/commit/48cbaa3171dd127d4eb811148facfde911b2ddb8))
+
 ## [0.115.0](https://github.com/zeroroot-ai/adk/compare/v0.114.0...v0.115.0) (2026-10-13)
 
 
