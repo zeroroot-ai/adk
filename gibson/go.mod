@@ -7,11 +7,11 @@ require (
 	cuelang.org/go v0.17.1
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.2
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 	github.com/stretchr/testify v1.12.1
-	github.com/zeroroot-ai/ast-checks v0.9.0
+	github.com/zeroroot-ai/ast-checks v0.10.0
 	github.com/zeroroot-ai/sdk v0.209.1
-	golang.org/x/oauth2 v0.37.0
+	golang.org/x/oauth2 v0.38.0
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
