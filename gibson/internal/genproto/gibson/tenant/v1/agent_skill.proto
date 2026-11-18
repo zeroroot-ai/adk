@@ -1,0 +1,57 @@
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file in the repo root.
+
+// AgentSkillService manages the Agent Skills of one tenant (epic gibson#1364).
+//
+// CLIENT-ONLY COPY. Staged in the ADK from the gibson platform proto
+// internal/server/daemon/api/gibson/tenant/v1/agent_skill.proto so the OSS
+// gibson CLI can generate a client. This copy holds only the RPC that the CLI
+// calls, PublishAgentSkill, and the messages that it needs. The (authz) and
+// validation options are server-only and are removed. The wire contract is
+// unchanged: the package name, the service name, the method name and the field
+// numbers equal the daemon proto.
+
+syntax = "proto3";
+
+package gibson.tenant.v1;
+
+option go_package = "github.com/zeroroot-ai/adk/gibson/internal/genproto/gibson/tenant/v1;tenantv1";
+
+import "google/protobuf/timestamp.proto";
+
+service AgentSkillService {
+  // PublishAgentSkill pulls the image that the reference names, validates the
+  // folder in it, stores the content, and makes the version current.
+  rpc PublishAgentSkill(PublishAgentSkillRequest) returns (PublishAgentSkillResponse);
+}
+
+// AgentSkillEntry is one published version of an Agent Skill.
+message AgentSkillEntry {
+  string name = 1;
+  // digest is the digest of the OCI image, in the form sha256:<hex>.
+  string digest = 2;
+  // reference is the digest reference that the publisher gave.
+  string reference = 3;
+  string description = 4;
+  string license = 5;
+  string compatibility = 6;
+  map<string, string> metadata = 7;
+  repeated string allowed_tools = 8;
+  google.protobuf.Timestamp published_at = 9;
+  // current is true for the newest publish of the name.
+  bool current = 10;
+}
+
+message PublishAgentSkillRequest {
+  // name is the name of the Agent Skill and of its folder.
+  string name = 1;
+  // reference is a digest reference, <registry>/<repository>@sha256:<hex>.
+  string reference = 2;
+  // registry_secret is the name of a tenant secret that holds the registry
+  // credential. Empty means an anonymous pull.
+  string registry_secret = 3;
+}
+
+message PublishAgentSkillResponse {
+  AgentSkillEntry entry = 1;
+}

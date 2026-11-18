@@ -23,7 +23,7 @@
 //	  --proto_path=<stage-root> \
 //	  --go_out=. --go_opt=module=github.com/zeroroot-ai/adk/gibson \
 //	  --go-grpc_out=. --go-grpc_opt=module=github.com/zeroroot-ai/adk/gibson \
-//	  gibson/tenant/v1/connector.proto
+//	  gibson/tenant/v1/connector.proto gibson/tenant/v1/agent_skill.proto
 //
 // from the module root, with protoc-gen-go built from the pinned
 // google.golang.org/protobuf and protoc-gen-go-grpc on PATH.

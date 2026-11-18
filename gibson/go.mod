@@ -5,6 +5,7 @@ go 1.27.3
 require (
 	buf.build/go/protovalidate v1.4.0
 	cuelang.org/go v0.17.1
+	github.com/google/go-containerregistry v0.22.1
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -26,16 +27,20 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.3 // indirect
+	github.com/docker/cli v29.8.0+incompatible // indirect
+	github.com/docker/docker-credential-helpers v0.9.9 // indirect
 	github.com/emicklei/proto v1.14.3 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/klauspost/compress v1.20.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20260420112717-c39628bde8b5 // indirect
 	github.com/rogpeppe/go-internal v1.15.0 // indirect
+	github.com/sirupsen/logrus v1.10.2 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.9.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
@@ -47,4 +52,5 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260904194346-d0f1323225a4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260904194346-d0f1323225a4 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+	gotest.tools/v3 v3.5.2 // indirect
 )
