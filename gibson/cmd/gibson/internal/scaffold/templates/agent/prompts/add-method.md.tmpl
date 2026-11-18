@@ -2,22 +2,28 @@
 
 This agent's reasoning lives in the `execute` function in `main.go`.
 Most "add a feature" requests reduce to: extend `execute` with another
-LLM call, tool invocation, observation emit, or sub-agent delegation.
+model call, tool invocation, observation emit, or sub-agent delegation.
 
-## Calling the LLM
+## Calling the model
 
 ```go
-resp, err := h.Complete(ctx, "primary", []llm.Message{
-    {Role: llm.RoleSystem, Content: "You are {{.Name}}."},
-    {Role: llm.RoleUser,   Content: task.Goal},
-})
+model, err := h.Model(ctx, "primary")
 if err != nil {
-    return agent.Result{Status: agent.StatusFailed}, err
+    return agent.Result{Status: a2a.TaskStateFailed}, err
+}
+items := []openresponses.Item{
+    openresponses.NewSystemMessage("You are {{.Name}}."),
+    openresponses.NewUserMessage(task.Goal),
+}
+resp, err := model.Create(ctx, &openresponses.Request{Input: items})
+if err != nil {
+    return agent.Result{Status: a2a.TaskStateFailed}, err
 }
 ```
 
-If you need tool use, call `h.CompleteWithTools(...)`. The LLM types
-are in `core/sdk/llm/`.
+You hold the item list. Add the items of `resp.Output` and your tool
+results to it, then call `model.Create` again. If you need tool use, set
+`Request.Tools`. The item types are in `core/sdk/openresponses/`.
 
 ## Calling a tool
 
@@ -27,7 +33,7 @@ Import the tool's generated proto bindings, then:
 req := &nmappb.NmapRequest{Targets: []string{"10.0.0.0/24"}}
 resp := &nmappb.NmapResponse{}
 if err := h.CallToolProto(ctx, "my-nmap-tool", req, resp); err != nil {
-    return agent.Result{Status: agent.StatusFailed}, err
+    return agent.Result{Status: a2a.TaskStateFailed}, err
 }
 ```
 
@@ -59,10 +65,16 @@ with ports/services/endpoints/certificates as sub-state) are in
 `core/sdk/agent/observation.go`. To report a security finding, use
 `h.SubmitFinding(ctx, f)` instead.
 
+A finding holds two kinds of evidence. Evidence that you type in
+`f.Evidence` is tier 2. To back a finding with a tool call, call
+`f.CiteToolCalls(id)` with the ID of that tool call. The daemon then
+records the result of the call as tier 1 evidence. The daemon refuses the
+finding if an ID names no tool call of this mission.
+
 ## Adding an LLM slot
 
 Call the new slot by its name, for example
-`h.Complete(ctx, "fast", messages)`. Nothing else declares it. The
+`h.Model(ctx, "fast")`. Nothing else declares it. The
 platform resolves the slot to one of the tenant's providers and a model.
 It uses the tenant default provider and model when that model meets the
 context floor of the slot.

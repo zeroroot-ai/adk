@@ -235,9 +235,31 @@ func TestRender_AgentExecuteMakesARealHarnessCall(t *testing.T) {
 	})
 	require.NoError(t, err)
 	src := string(files["main.go"])
-	assert.Contains(t, src, "\n\tresp, err := h.Complete(ctx, \"primary\"")
-	assert.NotContains(t, src, "// resp, err := h.Complete")
-	assert.Contains(t, string(files["main_test.go"]), "func TestExecuteAsksTheLLMAboutTheGoal")
+	assert.Contains(t, src, "\n\tmodel, err := h.Model(ctx, \"primary\")")
+	assert.NotContains(t, src, "// model, err := h.Model")
+	assert.NotContains(t, src, "h.Complete")
+	assert.Contains(t, string(files["main_test.go"]), "func TestExecuteAsksTheModelAboutTheGoal")
+}
+
+// TestRender_AgentNamesNoDeletedSDKCall pins that no file of the agent
+// scaffold names an SDK call that the SDK deleted: the four LLM calls, the
+// delegation and agent-list calls, the llm message types, and the old result
+// states.
+func TestRender_AgentNamesNoDeletedSDKCall(t *testing.T) {
+	files, err := scaffold.Render(scaffold.ScaffoldInput{
+		Name: "demo-agent", Version: "0.1.0", Kind: scaffold.KindAgent, SDKVersion: "v1.2.0",
+	})
+	require.NoError(t, err)
+	deleted := []string{
+		".Complete(", ".CompleteWithTools(", ".CompleteStructured(", ".CompleteStream(",
+		"DelegateToAgent", "ListAgents", "AgentService",
+		"sdk/llm\"", "llm.Message", "agent.StatusSuccess", "agent.StatusFailed", "agent.StatusCompleted",
+	}
+	for name, content := range files {
+		for _, d := range deleted {
+			assert.NotContainsf(t, string(content), d, "%s names the deleted SDK call %s", name, d)
+		}
+	}
 }
 
 func TestRender_ToolAllFilesPresent(t *testing.T) {
