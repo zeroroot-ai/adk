@@ -17,6 +17,6 @@ FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 
 COPY --from=builder /out/{{.Name}} /{{.Name}}
 
-EXPOSE 50051
+EXPOSE 8080
 
 ENTRYPOINT ["/{{.Name}}"]

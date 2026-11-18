@@ -262,6 +262,21 @@ func TestRender_AgentNamesNoDeletedSDKCall(t *testing.T) {
 	}
 }
 
+// TestRender_AgentOpensOnlyItsHealthPort pins that the agent scaffold names the
+// health port of the SDK (8080) and not the old gRPC port. An agent polls the
+// daemon and opens no other port.
+func TestRender_AgentOpensOnlyItsHealthPort(t *testing.T) {
+	files, err := scaffold.Render(scaffold.ScaffoldInput{
+		Name: "demo-agent", Version: "0.1.0", Kind: scaffold.KindAgent, SDKVersion: "v1.2.0",
+	})
+	require.NoError(t, err)
+	assert.Contains(t, string(files["Dockerfile"]), "EXPOSE 8080")
+	assert.Contains(t, string(files["prompts/deploy-checklist.md"]), "containerPort: 8080")
+	for name, content := range files {
+		assert.NotContainsf(t, string(content), "50051", "%s names the old gRPC port", name)
+	}
+}
+
 func TestRender_ToolAllFilesPresent(t *testing.T) {
 	files, err := scaffold.Render(scaffold.ScaffoldInput{
 		Name:       "demo-tool",

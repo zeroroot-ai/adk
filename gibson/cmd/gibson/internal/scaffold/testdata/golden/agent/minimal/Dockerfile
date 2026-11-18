@@ -17,6 +17,6 @@ FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 
 COPY --from=builder /out/demo-agent /demo-agent
 
-EXPOSE 50051
+EXPOSE 8080
 
 ENTRYPOINT ["/demo-agent"]

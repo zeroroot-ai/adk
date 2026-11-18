@@ -66,6 +66,21 @@ Defined in `core/sdk/agent/harness.go`. The harness gives you:
   Evidence that you type in `f.Evidence` is tier 2. The daemon records
   evidence for each tool call that the finding names with
   `f.CiteToolCalls(ids...)`. That evidence is tier 1.
+  Get the ID of a call with `agent.ReceiveToolCallID(&id)`:
+
+  ```go
+  var callID string
+  if err := h.CallToolProto(ctx, "my-nmap-tool", req, resp, agent.ReceiveToolCallID(&callID)); err != nil {
+      return agent.Result{Status: a2a.TaskStateFailed}, err
+  }
+
+  f := &finding.Finding{Title: "Open SSH port", Severity: finding.SeverityLow}
+  f.CiteToolCalls(callID) // callID is empty when the daemon recorded no call
+  if err := h.SubmitFinding(ctx, f); err != nil {
+      return agent.Result{Status: a2a.TaskStateFailed}, err
+  }
+  ```
+
 - **Sub-agents** — `h.Delegate(ctx, name, msg)` sends an A2A message
   (`*a2a.Message`) to another agent and returns an `*a2a.Task`.
 - **Observability** — `h.Logger()` (slog), `h.Tracer()` (OTel).

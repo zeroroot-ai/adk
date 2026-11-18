@@ -71,6 +71,22 @@ A finding holds two kinds of evidence. Evidence that you type in
 records the result of the call as tier 1 evidence. The daemon refuses the
 finding if an ID names no tool call of this mission.
 
+Get the ID from the tool call with the option `agent.ReceiveToolCallID`:
+
+```go
+var callID string
+if err := h.CallToolProto(ctx, "my-nmap-tool", req, resp, agent.ReceiveToolCallID(&callID)); err != nil {
+    return agent.Result{Status: a2a.TaskStateFailed}, err
+}
+
+f := &finding.Finding{Title: "Open SSH port", Severity: finding.SeverityLow}
+f.CiteToolCalls(callID) // callID is empty when the daemon recorded no call
+if err := h.SubmitFinding(ctx, f); err != nil {
+    return agent.Result{Status: a2a.TaskStateFailed}, err
+}
+```
+
+
 ## Adding an LLM slot
 
 Call the new slot by its name, for example
