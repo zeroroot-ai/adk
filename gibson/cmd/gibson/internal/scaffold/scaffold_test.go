@@ -235,9 +235,46 @@ func TestRender_AgentExecuteMakesARealHarnessCall(t *testing.T) {
 	})
 	require.NoError(t, err)
 	src := string(files["main.go"])
-	assert.Contains(t, src, "\n\tresp, err := h.Complete(ctx, \"primary\"")
-	assert.NotContains(t, src, "// resp, err := h.Complete")
-	assert.Contains(t, string(files["main_test.go"]), "func TestExecuteAsksTheLLMAboutTheGoal")
+	assert.Contains(t, src, "\n\tmodel, err := h.Model(ctx, \"primary\")")
+	assert.NotContains(t, src, "// model, err := h.Model")
+	assert.NotContains(t, src, "h.Complete")
+	assert.Contains(t, string(files["main_test.go"]), "func TestExecuteAsksTheModelAboutTheGoal")
+}
+
+// TestRender_AgentNamesNoDeletedSDKCall pins that no file of the agent
+// scaffold names an SDK call that the SDK deleted: the four LLM calls, the
+// delegation and agent-list calls, the llm message types, and the old result
+// states.
+func TestRender_AgentNamesNoDeletedSDKCall(t *testing.T) {
+	files, err := scaffold.Render(scaffold.ScaffoldInput{
+		Name: "demo-agent", Version: "0.1.0", Kind: scaffold.KindAgent, SDKVersion: "v1.2.0",
+	})
+	require.NoError(t, err)
+	deleted := []string{
+		".Complete(", ".CompleteWithTools(", ".CompleteStructured(", ".CompleteStream(",
+		"DelegateToAgent", "ListAgents", "AgentService",
+		"sdk/llm\"", "llm.Message", "agent.StatusSuccess", "agent.StatusFailed", "agent.StatusCompleted",
+	}
+	for name, content := range files {
+		for _, d := range deleted {
+			assert.NotContainsf(t, string(content), d, "%s names the deleted SDK call %s", name, d)
+		}
+	}
+}
+
+// TestRender_AgentOpensOnlyItsHealthPort pins that the agent scaffold names the
+// health port of the SDK (8080) and not the old gRPC port. An agent polls the
+// daemon and opens no other port.
+func TestRender_AgentOpensOnlyItsHealthPort(t *testing.T) {
+	files, err := scaffold.Render(scaffold.ScaffoldInput{
+		Name: "demo-agent", Version: "0.1.0", Kind: scaffold.KindAgent, SDKVersion: "v1.2.0",
+	})
+	require.NoError(t, err)
+	assert.Contains(t, string(files["Dockerfile"]), "EXPOSE 8080")
+	assert.Contains(t, string(files["prompts/deploy-checklist.md"]), "containerPort: 8080")
+	for name, content := range files {
+		assert.NotContainsf(t, string(content), "50051", "%s names the old gRPC port", name)
+	}
 }
 
 func TestRender_ToolAllFilesPresent(t *testing.T) {

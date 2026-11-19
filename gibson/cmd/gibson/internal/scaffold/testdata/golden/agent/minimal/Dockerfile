@@ -1,5 +1,5 @@
 # Stage 1: build — compiles the agent binary with CGO disabled.
-FROM golang:1.27.3-alpine AS builder
+FROM golang:1.27.4-alpine AS builder
 # GOTOOLCHAIN=local: the builder must carry the Go that go.mod names, so a
 # mismatch fails the build instead of downloading a toolchain.
 ARG GOTOOLCHAIN=local
@@ -17,6 +17,6 @@ FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 
 COPY --from=builder /out/demo-agent /demo-agent
 
-EXPOSE 50051
+EXPOSE 8080
 
 ENTRYPOINT ["/demo-agent"]

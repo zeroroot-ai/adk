@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/agent"
+	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/agentskill"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/auth"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/component"
 	"github.com/zeroroot-ai/adk/gibson/cmd/gibson/cmd/connector"
@@ -40,7 +41,8 @@ Subcommands:
   inspect    show what this principal can do (calls WhoAmI)
   mission    author, validate, render, submit gibson missions
   target     create, list, inspect, update, delete assessment targets
-  agent      manage agent/tool/plugin machine identities`,
+  agent      manage agent/tool/plugin machine identities
+  agent-skill validate and publish Agent Skills`,
 	SilenceUsage: true,
 }
 
@@ -66,6 +68,7 @@ func init() {
 	rootCmd.AddCommand(secret.Command())
 	rootCmd.AddCommand(target.Command())
 	rootCmd.AddCommand(agent.Command())
+	rootCmd.AddCommand(agentskill.Command())
 }
 
 // Execute runs the root command. Called from main.

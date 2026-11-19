@@ -30,7 +30,7 @@ spec:
       - name: agent
         image: <registry>/demo-agent:0.1.0
         ports:
-        - containerPort: 50051
+        - containerPort: 8080
         env:
         - name: GIBSON_URL
           value: <daemon URL>

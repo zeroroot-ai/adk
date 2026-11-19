@@ -1,8 +1,9 @@
 # AGENTS.md — {{.Name}}
 
 This directory is a **Gibson agent**. An agent is a stateful, LLM-driven
-gRPC process the Gibson daemon dials when its node in a mission DAG
-becomes active. The daemon supplies a `Harness` to your `Execute()`
+process. It polls the Gibson daemon for work. The daemon sends one A2A
+message when the node of the agent in a mission DAG becomes active. The
+agent sends back an A2A Task. The daemon supplies a `Harness` to your `Execute()`
 function; the harness owns LLMs, tools, plugins, and the typed
 observation emit path into the World (ADR-0107).
 
@@ -33,17 +34,21 @@ func execute(ctx context.Context, h agent.Harness, task agent.Task) (agent.Resul
 ```
 
 `task.Goal` (string) is the LLM-generated objective for this run. Return
-`agent.Result{Status: agent.StatusCompleted, Output: ...}` or surface
-the error.
+`agent.Result{Status: a2a.TaskStateCompleted, Output: ...}` or surface
+the error. `Status` is an A2A task state from
+`github.com/a2aproject/a2a-go/v2/a2a`: `TaskStateCompleted`,
+`TaskStateFailed`, `TaskStateCanceled`, `TaskStateInputRequired` or
+`TaskStateAuthRequired`.
 
 ## The Harness — your single API surface
 
 Defined in `core/sdk/agent/harness.go`. The harness gives you:
 
-- **LLM access** — `h.Complete(ctx, slot, messages, opts...)`,
-  `h.CompleteWithTools(ctx, slot, messages, tools)`,
-  `h.CompleteStructured(...)`. The slot is a name (e.g. `"primary"`). The
-  platform resolves it to one of the tenant's providers and a model.
+- **Model access** — `h.Model(ctx, slot)` returns one Open Responses
+  client (`core/sdk/openresponses/`). The slot is a name (e.g. `"primary"`).
+  The platform resolves it to one of the tenant's providers and a model.
+  The client sends and receives items. The agent holds its own item list
+  from the first message to the last tool result.
 - **Tool execution** — `h.CallToolProto(ctx, name, request, response)`.
   Tools are remote, called via Redis work queue. You get the response
   back as `proto.Message`; assert to your generated type.
@@ -58,16 +63,35 @@ Defined in `core/sdk/agent/harness.go`. The harness gives you:
   `core/sdk/agent/observation.go`.
 - **Findings** — `h.SubmitFinding(ctx, f)`. A finding is an emit too; it
   flows into the World as an observation (you don't query findings back).
-- **Sub-agents** — `h.DelegateToAgent(ctx, name, task)`.
+  Evidence that you type in `f.Evidence` is tier 2. The daemon records
+  evidence for each tool call that the finding names with
+  `f.CiteToolCalls(ids...)`. That evidence is tier 1.
+  Get the ID of a call with `agent.ReceiveToolCallID(&id)`:
+
+  ```go
+  var callID string
+  if err := h.CallToolProto(ctx, "my-nmap-tool", req, resp, agent.ReceiveToolCallID(&callID)); err != nil {
+      return agent.Result{Status: a2a.TaskStateFailed}, err
+  }
+
+  f := &finding.Finding{Title: "Open SSH port", Severity: finding.SeverityLow}
+  f.CiteToolCalls(callID) // callID is empty when the daemon recorded no call
+  if err := h.SubmitFinding(ctx, f); err != nil {
+      return agent.Result{Status: a2a.TaskStateFailed}, err
+  }
+  ```
+
+- **Sub-agents** — `h.Delegate(ctx, name, msg)` sends an A2A message
+  (`*a2a.Message`) to another agent and returns an `*a2a.Task`.
 - **Observability** — `h.Logger()` (slog), `h.Tracer()` (OTel).
 
-The full LLM types live in `core/sdk/llm/` (Message, RoleSystem/User/
-Assistant).
+The item types live in `core/sdk/openresponses/` (Message, FunctionCall,
+FunctionCallOutput, Request, Response).
 
 ## LLM slots
 
 The agent calls a slot by its name, for example
-`h.Complete(ctx, "primary", messages)`. Nothing else declares it. The
+`h.Model(ctx, "primary")`. Nothing else declares it. The
 platform resolves the slot to one of the tenant's providers and a model.
 It uses the tenant default provider and model when that model meets the
 context floor of the slot.
@@ -101,8 +125,8 @@ policy, not by mechanism.
    successful enrolment needs no token at all: the host key takes over, so a
    one-time credential is consumed exactly once (sdk#128).
 3. **Run** — `make build && gibson component run --kind agent`. The CLI starts the
-   binary, which calls `sdk.ServeAgent(...)` from `main.go` and serves
-   gRPC on port 50051. The daemon dials when a mission needs you.
+   binary, which calls `sdk.ServeAgent(...)` from `main.go`. The agent
+   polls the daemon. The daemon sends a work item when a mission needs you.
 4. **Verify grants** — `gibson inspect`. Auto-detects the runtime
    credential and calls `IdentityService.WhoAmI`.
 
@@ -112,7 +136,7 @@ policy, not by mechanism.
   contract; raw gRPC dials skip authz interceptors.
 - Read or write secrets via env vars — your runtime credential is your
   only credential channel; LLM API keys are owned by the daemon and
-  reach you only via slot-resolved completions.
+  reach you only via the model gateway that `h.Model` resolves.
 - Commit `~/.gibson/agent/{{.Name}}.host_key`, `.runtime.json`, or
   anything under `~/.gibson/`.
 - Open Neo4j / Redis / etcd directly. The harness wraps everything.
@@ -126,10 +150,10 @@ policy, not by mechanism.
 | Agent interface      | `core/sdk/agent/agent.go`                  |
 | Harness API          | `core/sdk/agent/harness.go`                |
 | Builder + options    | `core/sdk/agent/builder.go`, `core/sdk/options.go` |
-| LLM types            | `core/sdk/llm/`                            |
+| Open Responses types | `core/sdk/openresponses/`                  |
 | Observation types    | `core/sdk/agent/observation.go`            |
 | Result + Task types  | `core/sdk/agent/types.go`                  |
-| Serve (gRPC)         | `core/sdk/serve/serve.go`                  |
+| Serve (work queue)   | `core/sdk/serve/serve.go`                  |
 | Runtime enrollment (CG) | `core/sdk/capabilitygrant/`             |
 
 ## Naming convention
