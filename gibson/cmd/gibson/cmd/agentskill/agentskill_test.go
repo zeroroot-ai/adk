@@ -6,7 +6,6 @@ package agentskill
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"log"
 	"net"
@@ -46,8 +45,8 @@ func writeSkill(t *testing.T) string {
 	}
 	for p, c := range files {
 		full := filepath.Join(dir, filepath.FromSlash(p))
-		require.NoError(t, os.MkdirAll(filepath.Dir(full), 0o755))
-		require.NoError(t, os.WriteFile(full, []byte(c), 0o644))
+		require.NoError(t, os.MkdirAll(filepath.Dir(full), 0o750))
+		require.NoError(t, os.WriteFile(full, []byte(c), 0o600))
 	}
 	return dir
 }
@@ -114,10 +113,10 @@ func TestValidate_Ok(t *testing.T) {
 
 func TestValidate_ReportsEachProblemAndExitsWithTwo(t *testing.T) {
 	dir := writeSkill(t)
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("---\nname: other\n---\nbody\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("---\nname: other\n---\nbody\n"), 0o600))
 	out, errText, err := execute("validate", dir)
 	var exit component.ExitCodeError
-	require.True(t, errors.As(err, &exit))
+	require.ErrorAs(t, err, &exit)
 	require.Equal(t, 2, exit.Code)
 	require.Empty(t, out)
 	require.Contains(t, errText, "description is required")
@@ -169,7 +168,7 @@ func TestPublish_RefusesAnInvalidFolderBeforeAnyCall(t *testing.T) {
 	require.NoError(t, os.Remove(filepath.Join(dir, "SKILL.md")))
 	_, errText, err := execute("publish", dir, "--repository", "127.0.0.1:1/team/skills")
 	var exit component.ExitCodeError
-	require.True(t, errors.As(err, &exit))
+	require.ErrorAs(t, err, &exit)
 	require.Contains(t, errText, "no SKILL.md")
 	require.False(t, called)
 }

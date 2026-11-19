@@ -122,7 +122,7 @@ Publish does not grant the Agent Skill to an agent. Authenticate first with
 func loadAndPack(cmd *cobra.Command, dir string) (*agentskill.Artifact, error) {
 	name, files, readProblems, err := agentskill.ReadFolder(dir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read the folder: %w", err)
 	}
 	_, problems := agentskill.Check(name, files)
 	problems = append(readProblems, problems...)
@@ -134,13 +134,17 @@ func loadAndPack(cmd *cobra.Command, dir string) (*agentskill.Artifact, error) {
 		_, _ = fmt.Fprintf(w, "\nvalidation failed: %d error(s)\n", len(problems))
 		return nil, component.ExitCodeError{Code: 2}
 	}
-	return agentskill.Package(name, files)
+	art, err := agentskill.Package(name, files)
+	if err != nil {
+		return nil, fmt.Errorf("pack the folder: %w", err)
+	}
+	return art, nil
 }
 
 func runPublish(cmd *cobra.Command, dir, repository, registrySecret, gibsonURL string, timeout time.Duration) error {
 	repo, err := agentskill.ParseRepository(repository)
 	if err != nil {
-		return err
+		return fmt.Errorf("read the repository: %w", err)
 	}
 	art, err := loadAndPack(cmd, dir)
 	if err != nil {
@@ -160,7 +164,7 @@ func runPublish(cmd *cobra.Command, dir, repository, registrySecret, gibsonURL s
 
 	ref, err := agentskill.Push(ctx, repo, art)
 	if err != nil {
-		return err
+		return fmt.Errorf("push the image: %w", err)
 	}
 	resp, err := tenantv1.NewAgentSkillServiceClient(conn).PublishAgentSkill(ctx, &tenantv1.PublishAgentSkillRequest{
 		Name:           art.Manifest.Name,

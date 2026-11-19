@@ -40,7 +40,7 @@ func ReadFolder(dir string) (name string, files []File, problems []string, err e
 		}
 		rel, err := filepath.Rel(abs, p)
 		if err != nil {
-			return err
+			return fmt.Errorf("make %q relative to the folder: %w", p, err)
 		}
 		rel = filepath.ToSlash(rel)
 		if !d.Type().IsRegular() {
@@ -54,7 +54,7 @@ func ReadFolder(dir string) (name string, files []File, problems []string, err e
 		}
 		fi, err := d.Info()
 		if err != nil {
-			return err
+			return fmt.Errorf("stat %q: %w", rel, err)
 		}
 		if fi.Size() > MaxFileBytes || total+fi.Size() > MaxFolderBytes {
 			// Report the limit here. Do not read the content. The marker
@@ -65,7 +65,7 @@ func ReadFolder(dir string) (name string, files []File, problems []string, err e
 		}
 		data, err := os.ReadFile(p) //nolint:gosec // G304: the path comes from the walk of the folder the user named.
 		if err != nil {
-			return err
+			return fmt.Errorf("read %q: %w", rel, err)
 		}
 		total += int64(len(data))
 		files = append(files, File{Path: rel, Content: data})

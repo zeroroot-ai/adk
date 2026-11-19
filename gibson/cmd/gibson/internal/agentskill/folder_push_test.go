@@ -27,18 +27,18 @@ func writeGolden(t *testing.T) string {
 	dir := filepath.Join(t.TempDir(), "web-recon")
 	for _, f := range goldenFiles() {
 		p := filepath.Join(dir, filepath.FromSlash(f.Path))
-		require.NoError(t, os.MkdirAll(filepath.Dir(p), 0o755))
-		require.NoError(t, os.WriteFile(p, f.Content, 0o644))
+		require.NoError(t, os.MkdirAll(filepath.Dir(p), 0o750))
+		require.NoError(t, os.WriteFile(p, f.Content, 0o600))
 	}
 	return dir
 }
 
 func TestReadFolder_GivesTheGoldenDigest(t *testing.T) {
-	name, files, problems, err := agentskill.ReadFolder(writeGolden(t))
+	skillName, files, problems, err := agentskill.ReadFolder(writeGolden(t))
 	require.NoError(t, err)
 	require.Empty(t, problems)
-	require.Equal(t, "web-recon", name)
-	a, err := agentskill.Package(name, files)
+	require.Equal(t, "web-recon", skillName)
+	a, err := agentskill.Package(skillName, files)
 	require.NoError(t, err)
 	require.Equal(t, goldenDigest, a.Digest.String())
 }
@@ -53,7 +53,7 @@ func TestReadFolder_RefusesALink(t *testing.T) {
 
 func TestReadFolder_DoesNotReadAFileOverTheLimit(t *testing.T) {
 	dir := writeGolden(t)
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "big.bin"), make([]byte, agentskill.MaxFileBytes+1), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "big.bin"), make([]byte, agentskill.MaxFileBytes+1), 0o600))
 	_, files, problems, err := agentskill.ReadFolder(dir)
 	require.NoError(t, err)
 	require.Contains(t, strings.Join(problems, "\n"), "over a size limit")

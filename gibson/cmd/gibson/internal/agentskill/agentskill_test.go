@@ -4,7 +4,6 @@
 package agentskill_test
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -124,14 +123,14 @@ func TestCheck_Refusals(t *testing.T) {
 			require.NotEmpty(t, problems)
 			require.Contains(t, strings.Join(problems, "\n"), tc.want)
 			_, err := agentskill.Package(tc.folder, tc.files)
-			require.True(t, errors.Is(err, agentskill.ErrInvalidFolder), "Package error = %v", err)
+			require.ErrorIs(t, err, agentskill.ErrInvalidFolder)
 		})
 	}
 }
 
 func TestCheck_TooManyFiles(t *testing.T) {
 	files := skillWith("name: web-recon\ndescription: d\n")
-	for i := 0; i < agentskill.MaxFiles; i++ {
+	for i := range agentskill.MaxFiles {
 		files = append(files, file{Path: "f/" + strings.Repeat("x", i%7) + string(rune('a'+i%26)) + "/" + itoa(i)})
 	}
 	_, problems := agentskill.Check("web-recon", files)
@@ -140,7 +139,7 @@ func TestCheck_TooManyFiles(t *testing.T) {
 
 func TestCheck_FolderOverLimit(t *testing.T) {
 	files := skillWith("name: web-recon\ndescription: d\n")
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		files = append(files, file{Path: "blob" + itoa(i), Content: make([]byte, 1<<20)})
 	}
 	_, problems := agentskill.Check("web-recon", files)

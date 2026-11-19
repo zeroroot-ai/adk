@@ -110,8 +110,7 @@ type frontmatter struct {
 // Check applies the format rules and the size limits to the folder. It returns
 // each problem that it finds, in a stable order. An empty list means the
 // folder is valid. The manifest is nil when SKILL.md cannot be read.
-func Check(folderName string, files []File) (*Manifest, []string) {
-	var problems []string
+func Check(folderName string, files []File) (manifest *Manifest, problems []string) {
 	add := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
 
 	if !ValidName(folderName) {
@@ -192,7 +191,7 @@ func validPath(p string) string {
 
 // parseSkillFile splits SKILL.md into the frontmatter and the body and checks
 // each field. It returns a nil manifest when the frontmatter cannot be read.
-func parseSkillFile(raw []byte) (*Manifest, []string) {
+func parseSkillFile(raw []byte) (manifest *Manifest, problems []string) {
 	if !utf8.Valid(raw) {
 		return nil, []string{SkillFile + " is not valid UTF-8"}
 	}
@@ -223,7 +222,6 @@ func parseSkillFile(raw []byte) (*Manifest, []string) {
 		return nil, []string{fmt.Sprintf("the frontmatter of %s is not valid: %v", SkillFile, err)}
 	}
 
-	var problems []string
 	add := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
 	if len(body) > MaxBodyBytes {
 		add("the body of %s has %d bytes, the limit is %d", SkillFile, len(body), MaxBodyBytes)
