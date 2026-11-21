@@ -37,7 +37,7 @@ name: go-ci
 # gibson was already bitten by once (sdk#355/adk#154).
 #
 # check-cue-fresh and deadcode are both repo-specific static drift/reachability
-# gates the reusable has no notion of (multi-repo checkout + cue install;
+# gates the reusable has no notion of (cue install + pinned-SDK regen;
 # whole-program deadcode analysis) -- kept native, unchanged, on pull_request.
 #
 # no-monorepo-shortcuts is a reusable call with no build/test surface of its
@@ -98,65 +98,38 @@ jobs:
   # check-cue-fresh: drift gate for the embedded mission CUE schema.
   # Mirrors the dashboard's check-mission-schema-fresh pattern. Fails
   # when gibson/cmd/gibson/cmd/mission/schema/.../mission_definition_proto_gen.cue
-  # has drifted from the SDK proto.
+  # differs from the mission proto of the SDK version that gibson/go.mod
+  # pins. The script gets that exact release from the Go module cache, so
+  # an unreleased schema change on SDK main cannot fail an adk PR (adk#206).
+  # There is no SDK checkout.
   #
-  # Runs in FULL mode here because we explicitly check out the SDK
-  # sibling repository alongside this one -- same workspace layout the
-  # script expects on a developer's workstation
-  # (~/Code/zeroroot.ai/opensource/{adk,sdk}). The SDK is checked out
-  # without history (depth: 1) and at its default branch, which is the
-  # right answer for a drift gate: drift is defined against the
-  # current SDK main, the same surface every customer-installed CLI
-  # will eventually consume.
+  # The second step is the failing fixture: the gate must fail on a stale
+  # copy of the embedded CUE.
   #
-  # Spec: zeroroot-ai/adk#27 (mission-author-experience epic, M3). Kept
-  # native and unchanged -- the reusable has no notion of multi-repo
-  # checkouts.
+  # Spec: zeroroot-ai/adk#27 (mission-author-experience epic, M3).
   check-cue-fresh:
     if: github.event_name == 'pull_request'
     name: check-cue-fresh
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    defaults:
-      run:
-        working-directory: adk
+    timeout-minutes: 10
     steps:
       - name: Checkout adk
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          path: adk
-
-      # sdk is private: the default GITHUB_TOKEN is scoped to adk only and
-      # this checkout answers "Not Found" without a cross-repo token.
-      - name: Checkout sdk (sibling)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          repository: zeroroot-ai/sdk
-          path: sdk
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: adk/gibson/go.mod
+          go-version-file: gibson/go.mod
           cache: true
-          cache-dependency-path: adk/gibson/go.sum
+          cache-dependency-path: gibson/go.sum
 
       - name: Install cue
         run: go install cuelang.org/go/cmd/cue@v0.16.1
 
-      - name: Prime buf protovalidate cache (SDK dep)
-        working-directory: sdk
-        run: |
-          # The cue import proto pipeline reads protovalidate's .proto files
-          # from buf's module cache; `buf dep update` populates that cache
-          # against the SDK's buf.yaml/buf.lock without generating any code.
-          # buf is pinned as a go.mod `tool` dependency in the SDK, so
-          # `go tool buf` is hermetic and npm-free (SDK Makefile: `BUF := go
-          # tool buf`). The old `npm ci` assumed a package.json the SDK does
-          # not ship and failed at setup on every PR (adk#185).
-          go tool buf dep update
-
       - name: Run check-cue-fresh
         run: make check-cue-fresh
+
+      - name: Run the failing fixture of check-cue-fresh
+        run: make check-cue-fresh-fixture
 
   # lint: diff-scoped golangci-lint. BLOCKING on issues a PR introduces
   # (--new-from-rev), while the pre-existing backlog is burned down under

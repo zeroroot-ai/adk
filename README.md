@@ -286,12 +286,12 @@ submit time.
 
 ### Regenerate
 
-When the SDK's `mission_definition.proto` changes (and the SDK is
-re-released), refresh the embedded copy:
+When a new SDK release changes `mission_definition.proto`, bump the SDK
+in `gibson/go.mod`, then refresh the embedded copy:
 
 ```sh
-# Requires the SDK sibling clone at ../sdk and the cue binary
-# (go install cuelang.org/go/cmd/cue@v0.16.1).
+# Reads the SDK version that gibson/go.mod pins from the Go module cache.
+# Requires go and the cue binary (go install cuelang.org/go/cmd/cue@v0.16.1).
 make generate
 cd gibson && go test ./cmd/gibson/cmd/mission/...   # confirm CUE still loads
 git add gibson/cmd/gibson/cmd/mission/schema/ && git commit -m "chore: refresh embedded mission CUE from SDK"
@@ -306,14 +306,14 @@ by `make generate`.
 
 ### Drift gate
 
-`make check-cue-fresh` (run automatically in CI via
-`.github/workflows/ci.yml`) regenerates the embedded CUE and
-byte-diffs against the committed copy. PRs that change the SDK
-mission proto without refreshing the embedded copy fail this check
-with a clear `STALE: run 'make generate' to refresh embedded CUE`
-message. The gate has two modes (FULL with SDK sibling, STRUCTURAL
-without — see `scripts/check-cue-fresh.sh` for the contract);
-neither has a `--skip` flag.
+`make check-cue-fresh` (run in CI by `.github/workflows/go-ci.yml`)
+regenerates the embedded CUE from the mission proto of the SDK version
+that `gibson/go.mod` pins, and byte-diffs it against the committed copy.
+A PR that bumps the SDK without a refresh of the embedded copy fails with
+`STALE: run 'make generate' to refresh embedded CUE`. A schema change on
+SDK `main` that is not released and pinned does not fail the gate
+(adk#206). The gate has no `--skip` flag. `make check-cue-fresh-fixture`
+is its failing fixture: the gate must fail on a stale copy.
 
 Spec: zeroroot-ai/adk#27.
 

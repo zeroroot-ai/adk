@@ -6,7 +6,7 @@
 # checks (check-cue-fresh); use gibson/Makefile for the CLI itself.
 
 .PHONY: templates templates-export templates-vet templates-check \
-	ensure-cue ensure-cli bootstrap build test check check-cue-fresh \
+	ensure-cue ensure-cli bootstrap build test check check-cue-fresh check-cue-fresh-fixture \
 	lint lint-new deadcode image generate regen-cue
 
 # Templates ship as triplets: template.cue (authoring source),
@@ -62,8 +62,8 @@ templates-check: templates-vet templates-export
 templates: templates-vet templates-export
 
 # regen-cue: regenerate the embedded mission CUE schema in the gibson
-# CLI from the SDK proto. Requires the SDK sibling clone at ../sdk and
-# the cue binary on PATH. See scripts/regen-cue.sh for the pipeline
+# CLI from the mission proto of the SDK version that gibson/go.mod pins.
+# Requires go and the cue binary on PATH. See scripts/regen-cue.sh for the pipeline
 # (cue import proto + ADK-specific package/import normalization).
 # Spec: zeroroot-ai/adk#27.
 regen-cue:
@@ -71,13 +71,19 @@ regen-cue:
 
 # check-cue-fresh: drift gate for the ADK-embedded CUE schema.
 # FAILS CI when the committed *_proto_gen.cue under
-# gibson/cmd/gibson/cmd/mission/schema/ has drifted from the SDK proto.
-# Two modes (see scripts/check-cue-fresh.sh for the full contract):
-#   FULL       — SDK sibling present: regen + byte-diff.
-#   STRUCTURAL — SDK sibling absent : sentinel-header check only.
+# gibson/cmd/gibson/cmd/mission/schema/ differs from the mission proto of
+# the SDK version that gibson/go.mod pins (adk#206). SDK main is never
+# the source. See scripts/check-cue-fresh.sh for the full contract.
 # Spec: zeroroot-ai/adk#27 (mission-author-experience epic, M3).
 check-cue-fresh:
 	@scripts/check-cue-fresh.sh
+
+# check-cue-fresh-fixture: the failing fixture of check-cue-fresh. It runs
+# the gate against scripts/testdata/stale_mission_definition.cue, a copy of
+# the embedded CUE without MissionDefinition.workspace. The gate must exit
+# 1, say STALE and name the dropped field.
+check-cue-fresh-fixture:
+	@scripts/check-cue-fresh-fixture.sh
 
 # generate: ALIAS for the maintainer workflow that refreshes the
 # embedded mission CUE schema. Failure of check-cue-fresh resolves
@@ -232,5 +238,5 @@ image:
 readme-matches-cli: ## The README documents the CLI the binary has, and the Go floor go.mod states (adk#67)
 	@./scripts/check-readme-matches-cli.sh --selftest
 
-check: check-cue-fresh readme-matches-cli deadcode
+check: check-cue-fresh check-cue-fresh-fixture readme-matches-cli deadcode
 	@echo "check: ok"
