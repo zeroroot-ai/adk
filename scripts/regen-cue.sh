@@ -28,15 +28,15 @@
 # 1. Run `cue import proto` against the SDK's mission_definition.proto.
 #    This is the same invocation the SDK Makefile's `cue-defs` target uses,
 #    but scoped to the single file we care about.
-# 2. Apply two ADK-specific transforms:
+# 2. Apply three ADK-specific transforms:
 #    (a) Rename the CUE package from `missionpb` to `v1`. The ADK schema
 #        bundle uses positional `v1` so that import statements like
 #        `import v1 "github.com/zeroroot-ai/sdk/api/proto/gibson/mission/v1"`
 #        bind cleanly (CUE matches the last path segment if no alias is
 #        given).
 #    (b) Prepend the regen-pipeline sentinel header — the freshness gate
-#        (scripts/check-cue-fresh.sh STRUCTURAL mode) greps for this
-#        sentinel as proof the file went through the pipeline.
+#        (scripts/check-cue-fresh.sh) greps for this sentinel as proof
+#        the file went through the pipeline.
 #    (c) Rewrite every `api/gen/...:<alias>` colon import into the
 #        Go-style `<alias> "api/proto/..."` alias form, so it binds to
 #        the `package v1` stub at the SDK-shaped path.
