@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.116.1](https://github.com/zeroroot-ai/adk/compare/v0.116.0...v0.116.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* **ci:** compare the embedded cue with the pinned sdk, not sdk main ([#207](https://github.com/zeroroot-ai/adk/issues/207)) ([504efe8](https://github.com/zeroroot-ai/adk/commit/504efe87bf789ecb21f42a178570d0be7fb5436d)), closes [#206](https://github.com/zeroroot-ai/adk/issues/206)
+* **cli:** list each command group in the root help text ([#205](https://github.com/zeroroot-ai/adk/issues/205)) ([31366f6](https://github.com/zeroroot-ai/adk/commit/31366f6153c34a223454b9dc870cb91d914dfbd7))
+
 ## [0.116.0](https://github.com/zeroroot-ai/adk/compare/v0.115.1...v0.116.0) (2026-11-20)
 
 
