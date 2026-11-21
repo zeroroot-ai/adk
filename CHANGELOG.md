@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.116.0](https://github.com/zeroroot-ai/adk/compare/v0.115.1...v0.116.0) (2026-11-20)
+
+
+### Features
+
+* start the agent scaffold on Open Responses and add the agent-skill commands ([#200](https://github.com/zeroroot-ai/adk/issues/200)) ([6980ed8](https://github.com/zeroroot-ai/adk/commit/6980ed821ea3f67f1c5a14c1bd497f0673ee4b7b))
+
 ## [0.115.1](https://github.com/zeroroot-ai/adk/compare/v0.115.0...v0.115.1) (2026-10-21)
 
 
