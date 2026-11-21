@@ -1,11 +1,11 @@
 // TEST FIXTURE — intentionally stale.
 //
 // This file is a snapshot of the embedded CUE schema with the
-// MissionDefinition.workspace field deliberately deleted. The
-// freshness gate test (scripts/check_cue_fresh_test.go) feeds this
-// file to scripts/check-cue-fresh.sh via ADK_CUE_FIXTURE and asserts
-// the script exits non-zero with a STALE message that surfaces the
-// missing field.
+// MissionDefinition.workspace field deliberately deleted. The failing
+// fixture of the freshness gate (scripts/check-cue-fresh-fixture.sh,
+// `make check-cue-fresh-fixture`) feeds this file to
+// scripts/check-cue-fresh.sh via ADK_CUE_FIXTURE and asserts the script
+// exits 1 with a STALE message that surfaces the missing field.
 //
 // Do not consume this file from any production code path.
 //
