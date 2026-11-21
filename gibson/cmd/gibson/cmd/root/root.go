@@ -39,8 +39,8 @@ Subcommands:
   connector    manage tenant connectors (catalog | enable | list | disable)
   docs         emit the command tree as machine-readable JSON (docs cli)
   inspect      show what this principal can do (calls WhoAmI)
-  mission      author, validate, render, submit gibson missions
-  secret       set, get, list, rotate, delete tenant secrets
+  mission      author, validate, render, submit gibson missions, and browse the catalog
+  secret       set, get, list, rotate, delete, count tenant secrets, and select their backend
   target       create, list, get, update, delete assessment targets
   agent        enroll, list, revoke agent/tool/plugin machine identities
   agent-skill  validate and publish Agent Skills`,
