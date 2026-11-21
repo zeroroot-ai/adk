@@ -32,17 +32,18 @@ var rootCmd = &cobra.Command{
 development lifecycle.
 
 Subcommands:
-  login      authenticate the CLI against the platform (device flow)
-  logout     end the CLI session and remove stored credentials
-  init       initialize a Gibson workspace (.gibson/workspace.yaml)
-  component  scaffold, validate, build, run components (agent | tool | plugin)
-  connector  enable and manage tenant connectors (catalog | enable | list | disable)
-  docs       emit machine-readable docs (JSON Schemas, etc.)
-  inspect    show what this principal can do (calls WhoAmI)
-  mission    author, validate, render, submit gibson missions
-  target     create, list, inspect, update, delete assessment targets
-  agent      manage agent/tool/plugin machine identities
-  agent-skill validate and publish Agent Skills`,
+  init         initialize a Gibson workspace (.gibson/workspace.yaml)
+  login        authenticate the CLI against the platform (device flow)
+  logout       end the CLI session and remove stored credentials
+  component    scaffold, validate, build, generate, run components (agent | tool | plugin | connector)
+  connector    manage tenant connectors (catalog | enable | list | disable)
+  docs         emit the command tree as machine-readable JSON (docs cli)
+  inspect      show what this principal can do (calls WhoAmI)
+  mission      author, validate, render, submit gibson missions
+  secret       set, get, list, rotate, delete tenant secrets
+  target       create, list, get, update, delete assessment targets
+  agent        enroll, list, revoke agent/tool/plugin machine identities
+  agent-skill  validate and publish Agent Skills`,
 	SilenceUsage: true,
 }
 
