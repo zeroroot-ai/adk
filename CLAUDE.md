@@ -10,7 +10,7 @@ The `gibson` CLI and the mission-authoring surface: the binary a person installs
 
 ## Architecture
 
-One Go module, `github.com/zeroroot-ai/adk/gibson`, rooted at `gibson/`. The cobra tree is assembled in `gibson/cmd/gibson/cmd/root/root.go`; each command group is its own package beside it: `agent`, `auth`, `component`, `connector`, `docs`, `inspect`, `mission`, `target`, `workspace`.
+One Go module, `github.com/zeroroot-ai/adk/gibson`, rooted at `gibson/`. The cobra tree is assembled in `gibson/cmd/gibson/cmd/root/root.go`; each command group is its own package beside it: `agent`, `agentskill`, `auth`, `component`, `connector`, `docs`, `inspect`, `mission`, `secret`, `target`, `workspace`.
 
 Every command that reaches the platform dials it over the login session. There is no plaintext path and no unauthenticated path — the daemon resolves the caller's tenant from the bearer token, never from a flag (ADR-0093 decision 4).
 

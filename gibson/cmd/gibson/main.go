@@ -4,14 +4,9 @@
 // Command gibson is the Gibson Agent Development Kit command-line interface.
 //
 // It provides tooling for agent / tool / plugin authors and operators
-// working with the Gibson platform. Top-level verb groups:
-//
-//	gibson workspace   initialize and manage a Gibson workspace
-//	gibson component   scaffold, build, validate, register, run components
-//	                   (--kind agent | tool | plugin)
-//	gibson mission     author, validate, render, and submit missions
-//	gibson inspect     show identity + permissions for the local credential
-//	gibson docs        emit machine-readable docs (JSON Schemas, etc.)
+// working with the Gibson platform. `gibson --help` lists each top-level
+// command group. The list is in the Long text of the root command
+// (cmd/root/root.go).
 package main
 
 import (
