@@ -52,11 +52,16 @@
 #                                         # (used by check-cue-fresh.sh)
 #
 # Prerequisites
-#   - SDK sibling clone at ../sdk
+#   - go on PATH. The script reads the SDK version that gibson/go.mod pins
+#     and gets that exact module with `go mod download`. It never reads an
+#     SDK clone, so an unreleased SDK change on SDK main cannot make the
+#     embedded schema stale (adk#206).
 #   - cue binary on PATH (cuelang.org/go/cmd/cue v0.16.x)
-#   - buf protovalidate dependency cached at
-#     $HOME/.cache/buf/.../protovalidate/.../files
-#     (populated by `buf dep update` in the SDK repo)
+#   - network access the first time, for the module and for the
+#     protovalidate dependency that the SDK buf.lock pins
+#
+# To adopt a new mission schema, bump the SDK in gibson/go.mod, then run
+# this script.
 #
 # Spec
 #   issue zeroroot-ai/adk#27 (CUE freshness gate, M3 of mission-author-
@@ -67,45 +72,55 @@ set -euo pipefail
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ADK_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SDK_ROOT="$(cd "$ADK_ROOT/../sdk" 2>/dev/null && pwd || true)"
 
 DEFAULT_OUT="$ADK_ROOT/gibson/cmd/gibson/cmd/mission/schema/api/proto/gibson/mission/v1/mission_definition_proto_gen.cue"
 OUT="${1:-$DEFAULT_OUT}"
 
-if [[ -z "$SDK_ROOT" || ! -d "$SDK_ROOT/api/proto/gibson/mission/v1" ]]; then
-  echo "[$SCRIPT_NAME] ERROR: SDK sibling not found at $ADK_ROOT/../sdk" >&2
-  echo "  The regen pipeline reads $SDK_ROOT/api/proto/gibson/mission/v1/mission_definition.proto" >&2
-  echo "  Clone the SDK as a sibling of the ADK and re-run." >&2
-  exit 2
-fi
+for tool in go cue; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "[$SCRIPT_NAME] ERROR: $tool binary not on PATH." >&2
+    [[ "$tool" == cue ]] && echo "  Install with: go install cuelang.org/go/cmd/cue@v0.16.1" >&2
+    exit 2
+  fi
+done
 
-if ! command -v cue >/dev/null 2>&1; then
-  echo "[$SCRIPT_NAME] ERROR: cue binary not on PATH." >&2
-  echo "  Install with: go install cuelang.org/go/cmd/cue@v0.16.1" >&2
+# The SDK version is the one that gibson/go.mod pins. The embedded schema
+# must match the mission schema of that release, not of SDK main.
+SDK_MODULE="github.com/zeroroot-ai/sdk"
+SDK_VERSION="$(cd "$ADK_ROOT/gibson" && go list -m -f '{{.Version}}' "$SDK_MODULE")"
+if [[ -z "$SDK_VERSION" ]]; then
+  echo "[$SCRIPT_NAME] ERROR: gibson/go.mod pins no version of $SDK_MODULE" >&2
   exit 2
 fi
-
-BUF_VALIDATE_DIR="$(find "$HOME/.cache/buf" -type d -path '*protovalidate*/files' 2>/dev/null | head -1)"
-if [[ -z "$BUF_VALIDATE_DIR" ]]; then
-  echo "[$SCRIPT_NAME] ERROR: protovalidate proto cache not found." >&2
-  echo "  Run 'buf dep update' from the SDK directory first ($SDK_ROOT)." >&2
+SDK_DIR="$(cd "$ADK_ROOT/gibson" && go mod download -json "$SDK_MODULE@$SDK_VERSION" |
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["Dir"])')"
+if [[ ! -f "$SDK_DIR/api/proto/gibson/mission/v1/mission_definition.proto" ]]; then
+  echo "[$SCRIPT_NAME] ERROR: $SDK_MODULE@$SDK_VERSION has no mission_definition.proto" >&2
   exit 2
 fi
+echo "[$SCRIPT_NAME] SDK $SDK_MODULE@$SDK_VERSION from $SDK_DIR"
 
 WORK="$(mktemp -d -t adk-regen-cue.XXXXXX)"
 trap 'rm -rf "$WORK"' EXIT
 
-# Copy the SDK proto tree into a workdir so `cue import` can resolve
-# transitive imports without polluting the SDK's own tree with the
-# generated *_proto_gen.cue files.
-cp -r "$SDK_ROOT/api/proto" "$WORK/proto"
+# Copy the proto tree of the pinned SDK into a workdir, so that `cue import`
+# can write its output there. The module cache is read-only, so the copy is
+# made writable. The tree holds the SDK protos and the well-known types that
+# the SDK vendors under api/proto/google.
+cp -r "$SDK_DIR/api/proto" "$WORK/proto"
+chmod -R u+w "$WORK/proto"
+
+# buf export writes the dependencies that the SDK buf.lock pins
+# (protovalidate) beside the SDK protos. buf is a go.mod tool of the SDK, so
+# this SDK release pins the version of buf too.
+(cd "$SDK_DIR" && go tool buf export . --output "$WORK/deps")
 
 (
   cd "$WORK"
   # cue import proto writes *_proto_gen.cue alongside the .proto file
-  # in the import roots. We point at the mission_definition.proto only.
+  # in the import root. We point at the mission_definition.proto only.
   cue import proto -f --files \
-    -I proto -I "$BUF_VALIDATE_DIR" \
+    -I proto -I deps \
     proto/gibson/mission/v1/mission_definition.proto
 )
 

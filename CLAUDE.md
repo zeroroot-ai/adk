@@ -28,7 +28,7 @@ make build            # build the CLI into gibson/bin/
 make test             # cd gibson && go test ./...
 make check            # check-cue-fresh + readme-matches-cli + deadcode
 make templates        # vet and re-export templates/*/template.{cue,json}
-make regen-cue        # regenerate the embedded CUE from the SDK (needs a sibling sdk clone + cue)
+make regen-cue        # regenerate the embedded CUE from the pinned SDK (needs go + cue)
 make lint-new         # golangci-lint on new code only; what CI gates
 ```
 
@@ -38,7 +38,7 @@ make lint-new         # golangci-lint on new code only; what CI gates
 - **The README is checked against the binary.** `make readme-matches-cli` fails when the README names a command the cobra tree does not define, or when its Go floor disagrees with `gibson/go.mod`. The floor lives between `<!-- go-floor -->` markers, which is the one literal; do not add a second. It documented `mission draft` and `provider`, two command groups that do not exist, until adk#67.
 - **A mission template must name a target.** `mission new` resolves one and writes it in, so the scaffold submits as written. A new template needs exactly one `target_ref:` line or the test suite fails (adk#68).
 - **Two template surfaces, one name.** `templates/<name>/template.cue` is documentation a reader fills in; `builtinTemplates` in `new.go` is what the CLI emits. Fix the one the reproduction actually used.
-- **`check-cue-fresh` needs a sibling SDK clone and a `cue` binary** to regenerate, which CI has and a bare `go test` does not. Its negative half runs everywhere as a Go test.
+- **`check-cue-fresh` compares with the pinned SDK, not SDK main.** It regenerates the embedded CUE from the SDK version in `gibson/go.mod`, fetched into the Go module cache, and needs `go` and `cue`. To adopt a new mission schema, bump the SDK, then run `make generate`. `make check-cue-fresh-fixture` is its failing fixture (adk#206).
 
 ## Links
 
